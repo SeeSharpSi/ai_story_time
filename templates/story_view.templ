@@ -1,8 +1,9 @@
 package templates
 
 import "fmt"
+import "story_ai/story"
 
-templ StoryView(initialStory string, inventory []string, bgColor string) {
+templ StoryView(initialStory string, inventory []story.Item, bgColor string) {
 	<div id="dynamic-styles-wrapper">
 		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
 	</div>
@@ -23,7 +24,7 @@ templ StoryView(initialStory string, inventory []string, bgColor string) {
 		<h3>Inventory</h3>
 		<ul>
 			for _, item := range inventory {
-				<li>{ item }</li>
+				<li>{ item.Name }</li>
 			}
 		</ul>
 	</div>

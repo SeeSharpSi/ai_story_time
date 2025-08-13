@@ -153,60 +153,25 @@ templ Index(title string) {
 					margin-left: 10px;
 				}
 
-				/* Survive switch styles */
-				.switch-container {
-					display: flex;
-					align-items: center;
-					justify-content: center;
+				/* Difficulty selector styles */
+				.difficulty-container {
 					margin-top: 20px;
+					display: flex;
+					justify-content: center;
+					align-items: center;
+					gap: 10px;
 				}
-				.switch {
-					position: relative;
-					display: inline-block;
-					width: 60px;
-					height: 34px;
-				}
-				.switch input {
-					opacity: 0;
-					width: 0;
-					height: 0;
-				}
-				.slider {
-					position: absolute;
-					cursor: pointer;
-					top: 0;
-					left: 0;
-					right: 0;
-					bottom: 0;
-					background-color: #ccc;
-					transition: .4s;
-				}
-				.slider:before {
-					position: absolute;
-					content: "";
-					height: 26px;
-					width: 26px;
-					left: 4px;
-					bottom: 4px;
-					background-color: white;
-					transition: .4s;
-				}
-				input:checked + .slider {
-					background-color: #f92672;
-				}
-				input:checked + .slider:before {
-					transform: translateX(26px);
-				}
-				.slider.round {
-					border-radius: 34px;
-				}
-				.slider.round:before {
-					border-radius: 50%;
-				}
-				.switch-label {
-					margin-left: 10px;
+				.difficulty-label {
 					font-size: 1.2em;
 					color: #ffffff;
+				}
+				#difficulty-selector {
+					font-family: 'JetBrains Mono', monospace;
+					padding: 8px;
+					border-radius: 4px;
+					border: 1px solid #333;
+					background-color: #1e1e1e;
+					color: #d4d4d4;
 				}
 			</style>
 		</head>
@@ -225,28 +190,29 @@ templ Index(title string) {
 					<ul>
 						<li>Use quotations when speaking</li>
 						<li>Interact with characters, animals, and objects</li>
-                        <li>Choose "Survival" at your own risk - it proves for a dangerous story</li>
+                        <li>Choose your difficulty wisely.</li>
 						<li>Be creative!</li>
 					</ul>
 					<h3>Choose Your Adventure:</h3>
 				</div>
 				<div class="genre-buttons">
-					<button hx-get="/start" hx-vars="genre:'fantasy', survive:document.getElementById('survive-switch').checked" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					<button hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
 						Fantasy
 					</button>
-					<button hx-get="/start" hx-vars="genre:'sci-fi', survive:document.getElementById('survive-switch').checked" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					<button hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
 						Sci-Fi
 					</button>
-					<button hx-get="/start" hx-vars="genre:'historical-fiction', survive:document.getElementById('survive-switch').checked" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					<button hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
 						Historical Fiction
 					</button>
 				</div>
-				<div class="switch-container">
-					<label class="switch">
-						<input type="checkbox" id="survive-switch"/>
-						<span class="slider round"></span>
-					</label>
-					<label for="survive-switch" class="switch-label">Survival</label>
+				<div class="difficulty-container">
+					<label for="difficulty-selector" class="difficulty-label">Difficulty:</label>
+					<select id="difficulty-selector">
+						<option value="exploratory">Exploratory</option>
+						<option value="challenging" selected>Challenging</option>
+						<option value="punishing">Punishing</option>
+					</select>
 				</div>
 			</div>
 

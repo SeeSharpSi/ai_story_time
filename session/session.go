@@ -12,11 +12,10 @@ import (
 // Session holds the state for a single user's story.
 type Session struct {
 	ID            string
+	GameState     *story.GameState
 	StoryHistory  []story.StoryPage
-	Inventory     []string
 	CurrentGenre  string
 	CurrentAuthor string
-	SurviveMode   bool
 	LastAccessed  time.Time
 }
 
@@ -45,8 +44,8 @@ func (m *Manager) CreateSession() string {
 
 	m.sessions[id] = &Session{
 		ID:           id,
+		GameState:    &story.GameState{},
 		StoryHistory: []story.StoryPage{},
-		Inventory:    []string{},
 		LastAccessed: time.Now(),
 	}
 	return id

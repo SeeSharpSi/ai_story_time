@@ -24,7 +24,7 @@ templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string,
 
 	if gameOver {
 		<div id="response-form" hx-swap-oob="true">
-			<a href="/download" class="button">Download Story</a>
+			<button onclick="window.location.href='/download'" class="button">Download Story</button>
 			<form hx-post="/start?genre={currentGenre}" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner" style="margin-left: 10px;">
 				<button type="submit">Restart</button>
 			</form>

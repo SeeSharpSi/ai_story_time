@@ -36,6 +36,8 @@ var (
 	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
 	// Regex to find Markdown bolding (**text**)
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
+	// Regex to find Markdown italics (*text*)
+	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
 )
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
@@ -51,6 +53,8 @@ func parseAIResponse(response string) (AIResponse, error) {
 
 	// Failsafe: Replace any Markdown bolding with <strong> tags.
 	aiResp.Story = markdownBoldRegex.ReplaceAllString(aiResp.Story, "<strong>$1</strong>")
+	// Failsafe: Replace any Markdown italics with <em> tags.
+	aiResp.Story = markdownItalicRegex.ReplaceAllString(aiResp.Story, "<em>$1</em>")
 
 	return aiResp, nil
 }
@@ -60,7 +64,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	genre := r.URL.Query().Get("genre")
-	
+
 	rand.Seed(time.Now().UnixNano())
 	author := authors[rand.Intn(len(authors))]
 
@@ -163,7 +167,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre).Render(context.Background(), w)
 		return
 	}
-	
+
 	if aiResp.BackgroundColor == "" {
 		aiResp.BackgroundColor = "#1e1e1e"
 	}
@@ -192,22 +196,30 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
-	pdf.SetFont("Arial", "B", 16)
-	pdf.Cell(40, 10, "Your Story")
+	pdf.SetFont("Helvetica", "B", 24)
+	pdf.Cell(0, 10, "Your Story")
+	pdf.Ln(15)
+
+	pdf.SetFont("Helvetica", "I", 14)
+	pdf.Cell(0, 10, "An AI-generated story in the style of "+sess.CurrentAuthor)
 	pdf.Ln(20)
 
-	pdf.SetFont("Arial", "", 12)
+	pdf.SetFont("Helvetica", "", 12)
 	for _, page := range sess.StoryHistory {
 		pdf.SetFontStyle("I")
-		pdf.Write(5, "You: "+page.Prompt)
+		pdf.Write(5, page.Prompt)
 		pdf.Ln(10)
 
 		pdf.SetFontStyle("")
-		cleanResponse := strings.ReplaceAll(page.Response, `<span class="item-added">`, "")
+		// Basic HTML tag removal
+		cleanResponse := strings.ReplaceAll(page.Response, "<strong>", "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, "</strong>", "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, "<em>", "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, "</em>", "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, `<span class="item-added">`, "")
 		cleanResponse = strings.ReplaceAll(cleanResponse, `<span class="item-removed">`, "")
 		cleanResponse = strings.ReplaceAll(cleanResponse, `</span>`, "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, `<strong>`, "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, `</strong>`, "")
+
 		pdf.MultiCell(0, 5, cleanResponse, "", "", false)
 		pdf.Ln(10)
 	}

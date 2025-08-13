@@ -91,7 +91,7 @@ func Update(storyHistory []story.StoryPage, inventory []string, bgColor string, 
 			return templ_7745c5c3_Err
 		}
 		if gameOver {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div id=\"response-form\" hx-swap-oob=\"true\"><a href=\"/download\" class=\"button\">Download Story</a><form hx-post=\"/start?genre={currentGenre}\" hx-target=\"#story-container\" hx-swap=\"innerHTML\" hx-indicator=\"#spinner\" style=\"margin-left: 10px;\"><button type=\"submit\">Restart</button></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div id=\"response-form\" hx-swap-oob=\"true\"><button onclick=\"window.location.href='/download'\" class=\"button\">Download Story</button><form hx-post=\"/start?genre={currentGenre}\" hx-target=\"#story-container\" hx-swap=\"innerHTML\" hx-indicator=\"#spinner\" style=\"margin-left: 10px;\"><button type=\"submit\">Restart</button></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

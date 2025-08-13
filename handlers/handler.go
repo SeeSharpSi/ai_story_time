@@ -46,7 +46,7 @@ type AIRequest struct {
 }
 
 var (
-	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
+	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "H.P. Lovecraft", "Edgar Allan Poe", "J.R.R. Tolkien", "Other"}
 	// Regex to find Markdown bolding (**text**)
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
@@ -102,6 +102,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sess.CurrentAuthor = author
+	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
 
 	var prompt string
 	prompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
@@ -236,7 +237,12 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(15)
 
 	pdf.SetFont("Helvetica", "I", 14)
-	pdf.Cell(0, 10, "An AI-generated story in the style of "+sess.CurrentAuthor+" set in a world of "+sess.CurrentGenre)
+	subtitle := fmt.Sprintf("An AI-generated %s story in the style of %s (Difficulty: %s)",
+		sess.CurrentGenre,
+		sess.CurrentAuthor,
+		sess.GameState.Rules.ConsequenceModel,
+	)
+	pdf.Cell(0, 10, subtitle)
 	pdf.Ln(20)
 
 	pdf.SetFont("Helvetica", "", 12)

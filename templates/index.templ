@@ -1,0 +1,138 @@
+package templates
+
+templ Index(title string) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<title>{ title }</title>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<script src="/static/htmx.min.js"></script>
+			<link rel="preconnect" href="https://fonts.googleapis.com">
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+			<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+			<style>
+				body { 
+					font-family: 'Merriweather', serif;
+					margin: 0; 
+					padding: 20px; 
+					background-color: #f5e8c3; /* Parchment */
+					color: #3a2d21; /* Dark Brown */
+					display: flex; 
+					justify-content: center; 
+					align-items: center; 
+					min-height: 100vh; 
+				}
+				#story-container { 
+					max-width: 600px; 
+					width: 100%; 
+					background-color: #d2b48c; /* Tan */
+					padding: 40px; 
+					border-radius: 8px; 
+					box-shadow: 0 4px 8px rgba(0,0,0,0.3); 
+					text-align: center; 
+					border: 2px solid #8c6d46; /* Darker Tan */
+				}
+				h1, h3 {
+					font-family: 'IM Fell English SC', serif;
+					color: #5a3d21; /* Darker Brown */
+				}
+				.rules { text-align: left; margin-bottom: 30px; }
+				button { 
+					font-family: 'IM Fell English SC', serif;
+					padding: 15px 30px; 
+					font-size: 1.2em; 
+					border: none; 
+					background-color: #cc5500; /* Burnt Orange */
+					color: white; 
+					border-radius: 4px; 
+					cursor: pointer; 
+					transition: background-color 0.3s;
+				}
+				button:hover {
+					background-color: #e66100;
+				}
+
+				/* Spinner styles */
+				.loader {
+					border: 8px solid #f3f3f3; /* Light grey */
+					border-top: 8px solid #cc5500; /* Burnt Orange */
+					border-radius: 50%;
+					width: 60px;
+					height: 60px;
+					animation: spin 1s linear infinite;
+				}
+
+				@keyframes spin {
+					0% { transform: rotate(0deg); }
+					100% { transform: rotate(360deg); }
+				}
+
+				.htmx-indicator {
+					display: none;
+				}
+
+				.htmx-request.htmx-indicator {
+					display: block;
+					position: fixed;
+					top: 50%;
+					left: 50%;
+					transform: translate(-50%, -50%);
+					z-index: 1000;
+				}
+
+				/* Story view styles */
+				#story-history {
+					text-align: left;
+					margin-bottom: 20px;
+					border-bottom: 2px solid #8c6d46;
+					padding-bottom: 10px;
+				}
+				.user-response {
+					color: #006400; /* Forest Green */
+					font-style: italic;
+				}
+				#response-form {
+					display: flex;
+					margin-bottom: 20px;
+				}
+				#prompt {
+					flex-grow: 1;
+					padding: 10px;
+					border: 1px solid #8c6d46;
+					border-radius: 4px;
+					background-color: #f5e8c3;
+					color: #3a2d21;
+				}
+				#inventory {
+					text-align: left;
+					padding: 20px;
+					background-color: #c1a37e; /* Lighter Tan */
+					border-radius: 8px;
+					border: 1px solid #8c6d46;
+				}
+			</style>
+		</head>
+		<body>
+			<div id="story-container">
+				<h1>Welcome to the Interactive Story</h1>
+				<div class="rules">
+					<h3>Rules of Play:</h3>
+					<ul>
+						<li>You will be presented with a story.</li>
+						<li>Respond to the story in 15 words or less.</li>
+						<li>Your choices will shape the narrative.</li>
+						<li>You can interact with characters and pick up items.</li>
+					</ul>
+				</div>
+				<button hx-post="/start" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					Begin
+				</button>
+			</div>
+
+			<div id="spinner" class="htmx-indicator">
+				<div class="loader"></div>
+			</div>
+		</body>
+	</html>
+}

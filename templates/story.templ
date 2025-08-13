@@ -1,0 +1,12 @@
+package templates
+
+import "story_ai/story"
+
+templ StoryPage(storyHistory []story.StoryPage) {
+	for _, page := range storyHistory {
+		<div class="story-page">
+			<p class="user-response">{ page.Prompt }</p>
+			<p>{ page.Response }</p>
+		</div>
+	}
+}

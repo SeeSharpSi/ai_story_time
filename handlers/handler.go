@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/generative-ai-go/genai"
+	"github.com/jung-kurt/gofpdf"
 )
 
 type Handler struct {
@@ -49,16 +50,13 @@ func parseAIResponse(response string) (AIResponse, error) {
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	genre := r.URL.Query().Get("genre")
 	
-	// Select a random author
 	rand.Seed(time.Now().UnixNano())
 	author := authors[rand.Intn(len(authors))]
 
 	if author == "Other" {
-		// Make a call to Gemini to get another author
 		authorPrompt := "Name one famous author who is not on this list: William Faulkner, James Joyce, Mark Twain, Jack Kerouac, Kurt Vonnegut. Respond with only the author's name."
 		resp, err := h.Model.GenerateContent(context.Background(), genai.Text(authorPrompt))
 		if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-			// Fallback to a default author if the API fails
 			author = "Mark Twain"
 		} else {
 			author = string(resp.Candidates[0].Content.Parts[0].(genai.Text))
@@ -142,7 +140,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: prompt, Response: "[The AI's response was blocked. Try something else.]"}
 		storyHistory = append(storyHistory, errorPage)
-		templates.Update(storyHistory, inventory, "#1e1e1e").Render(context.Background(), w)
+		templates.Update(storyHistory, inventory, "#1e1e1e", false).Render(context.Background(), w)
 		return
 	}
 
@@ -150,7 +148,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorPage := story.StoryPage{Prompt: prompt, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		storyHistory = append(storyHistory, errorPage)
-		templates.Update(storyHistory, inventory, "#1e1e1e").Render(context.Background(), w)
+		templates.Update(storyHistory, inventory, "#1e1e1e", false).Render(context.Background(), w)
 		return
 	}
 	
@@ -175,5 +173,39 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	storyHistory = append(storyHistory, story.StoryPage{Prompt: prompt, Response: aiResp.Story})
-	templates.Update(storyHistory, inventory, aiResp.BackgroundColor).Render(context.Background(), w)
+	templates.Update(storyHistory, inventory, aiResp.BackgroundColor, aiResp.GameOver).Render(context.Background(), w)
+}
+
+func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(40, 10, "Your Story")
+	pdf.Ln(20)
+
+	pdf.SetFont("Arial", "", 12)
+	for _, page := range storyHistory {
+		// User prompt
+		pdf.SetFontStyle("I")
+		pdf.Write(5, "You: "+page.Prompt)
+		pdf.Ln(10)
+
+		// AI response
+		pdf.SetFontStyle("")
+		// We need to decode the HTML entities for the PDF
+		cleanResponse := strings.ReplaceAll(page.Response, `<span class="item-added">`, "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, `<span class="item-removed">`, "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, `</span>`, "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, `<strong>`, "")
+		cleanResponse = strings.ReplaceAll(cleanResponse, `</strong>`, "")
+		pdf.MultiCell(0, 5, cleanResponse, "", "", false)
+		pdf.Ln(10)
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", "attachment; filename=story.pdf")
+	err := pdf.Output(w)
+	if err != nil {
+		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
+	}
 }

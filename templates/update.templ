@@ -3,7 +3,7 @@ package templates
 import "story_ai/story"
 import "fmt"
 
-templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string) {
+templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string, gameOver bool) {
 	<div id="story-history" hx-swap-oob="true">
 		for _, page := range storyHistory {
 			<div class="story-page">
@@ -21,6 +21,15 @@ templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string)
 			}
 		</ul>
 	</div>
+
+	if gameOver {
+		<div id="response-form" hx-swap-oob="true">
+			<a href="/download" class="button">Download Story</a>
+			<form hx-post="/start?genre={currentGenre}" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner" style="margin-left: 10px;">
+				<button type="submit">Restart</button>
+			</form>
+		</div>
+	}
 
 	<div id="dynamic-styles-wrapper" hx-swap-oob="true">
 		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))

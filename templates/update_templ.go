@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import "story_ai/story"
 import "fmt"
 
-func Update(storyHistory []story.StoryPage, inventory []string, bgColor string) templ.Component {
+func Update(storyHistory []story.StoryPage, inventory []string, bgColor string, gameOver bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -86,7 +86,17 @@ func Update(storyHistory []story.StoryPage, inventory []string, bgColor string) 
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</ul></div><div id=\"dynamic-styles-wrapper\" hx-swap-oob=\"true\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</ul></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if gameOver {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div id=\"response-form\" hx-swap-oob=\"true\"><a href=\"/download\" class=\"button\">Download Story</a><form hx-post=\"/start?genre={currentGenre}\" hx-target=\"#story-container\" hx-swap=\"innerHTML\" hx-indicator=\"#spinner\" style=\"margin-left: 10px;\"><button type=\"submit\">Restart</button></form></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div id=\"dynamic-styles-wrapper\" hx-swap-oob=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -94,7 +104,7 @@ func Update(storyHistory []story.StoryPage, inventory []string, bgColor string) 
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

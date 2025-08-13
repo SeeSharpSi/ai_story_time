@@ -50,7 +50,8 @@ func main() {
 	// The /start route begins the story.
 	mux.HandleFunc("/start", h.StartStory)
 	mux.HandleFunc("/generate", h.Generate)
+	mux.HandleFunc("/download", h.DownloadStory)
 
-	log.Println("Listening on :9779")
-	log.Fatal(http.ListenAndServe(":9779", mux))
+	log.Println("Listening on http://0.0.0.0:9779")
+	log.Fatal(http.ListenAndServe("0.0.0.0:9779", mux))
 }

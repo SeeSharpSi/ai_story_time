@@ -15,6 +15,7 @@ The JSON object must have five keys:
 RULES FOR THE STORY:
 - When an item is added or removed, you MUST wrap the item's name in the story text with the appropriate HTML span tag: <span class="item-added">Item Name</span> for added items, and <span class="item-removed">Item Name</span> for removed items.
 - **If the "STORY SO FAR" section below is empty, you MUST begin a brand new story. The story must start with the user waking up in a new and interesting location.**
+- **The story MUST be written in the style of %s.**
 `
 
 const FantasyPrompt = basePrompt + `

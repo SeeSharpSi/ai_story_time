@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"story_ai/prompts"
 	"story_ai/story"
 	"story_ai/templates"
 	"strings"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 )
@@ -30,6 +32,8 @@ var (
 	storyHistory []story.StoryPage
 	inventory    []string
 	currentGenre string
+	currentAuthor string
+	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
 )
 
 // parseAIResponse unmarshals the JSON from the AI.
@@ -44,20 +48,37 @@ func parseAIResponse(response string) (AIResponse, error) {
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	genre := r.URL.Query().Get("genre")
+	
+	// Select a random author
+	rand.Seed(time.Now().UnixNano())
+	author := authors[rand.Intn(len(authors))]
+
+	if author == "Other" {
+		// Make a call to Gemini to get another author
+		authorPrompt := "Name one famous author who is not on this list: William Faulkner, James Joyce, Mark Twain, Jack Kerouac, Kurt Vonnegut. Respond with only the author's name."
+		resp, err := h.Model.GenerateContent(context.Background(), genai.Text(authorPrompt))
+		if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+			// Fallback to a default author if the API fails
+			author = "Mark Twain"
+		} else {
+			author = string(resp.Candidates[0].Content.Parts[0].(genai.Text))
+		}
+	}
+	currentAuthor = author
+
 	var prompt string
 	switch genre {
 	case "fantasy":
-		prompt = prompts.FantasyPrompt
+		prompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
 		currentGenre = "fantasy"
 	case "sci-fi":
-		prompt = prompts.SciFiPrompt
+		prompt = fmt.Sprintf(prompts.SciFiPrompt, currentAuthor)
 		currentGenre = "sci-fi"
 	case "historical-fiction":
-		prompt = prompts.HistoricalFictionPrompt
+		prompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, currentAuthor)
 		currentGenre = "historical-fiction"
 	default:
-		// Fallback to fantasy if no genre is specified
-		prompt = prompts.FantasyPrompt
+		prompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
 		currentGenre = "fantasy"
 	}
 
@@ -87,8 +108,6 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	prompt := r.FormValue("prompt")
 
 	if strings.ToLower(strings.TrimSpace(prompt)) == "restart" {
-		// To restart, we need to know the current genre.
-		// We'll pass it back to the start handler.
 		r.URL.RawQuery = "genre=" + currentGenre
 		h.StartStory(w, r)
 		return
@@ -102,13 +121,13 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	var systemPrompt string
 	switch currentGenre {
 	case "fantasy":
-		systemPrompt = prompts.FantasyPrompt
+		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
 	case "sci-fi":
-		systemPrompt = prompts.SciFiPrompt
+		systemPrompt = fmt.Sprintf(prompts.SciFiPrompt, currentAuthor)
 	case "historical-fiction":
-		systemPrompt = prompts.HistoricalFictionPrompt
+		systemPrompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, currentAuthor)
 	default:
-		systemPrompt = prompts.FantasyPrompt
+		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
 	}
 
 	var historyBuilder strings.Builder

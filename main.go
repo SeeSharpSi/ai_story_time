@@ -15,10 +15,8 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// Load .env file, but don't crash if it's not present
+	godotenv.Load()
 
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
@@ -52,6 +50,11 @@ func main() {
 	mux.HandleFunc("/generate", h.Generate)
 	mux.HandleFunc("/download", h.DownloadStory)
 
-	log.Println("Listening on http://0.0.0.0:9779")
-	log.Fatal(http.ListenAndServe("0.0.0.0:9779", mux))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "9779"
+	}
+
+	log.Println("Listening on http://0.0.0.0:" + port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

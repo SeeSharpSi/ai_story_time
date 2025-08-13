@@ -4,7 +4,7 @@
 
 ---
 
-![A robot hand writing a fantasy story with a quill pen on a scroll.](https://i.imgur.com/2p4S0sN.png)
+![Mark Twain writing a sci-fi book.](https://drive.google.com/file/d/1y1aEXO-485oiPrbnfNjZMNsbsR1KMZu5/view?usp=drive_link)
 
 ---
 

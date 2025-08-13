@@ -1,0 +1,29 @@
+package templates
+
+import "story_ai/story"
+
+templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string) {
+	<div id="story-history" hx-swap-oob="true">
+		for _, page := range storyHistory {
+			<div class="story-page">
+				<p class="user-response">{ page.Prompt }</p>
+				<p>{ page.Response }</p>
+			</div>
+		}
+	</div>
+
+	<div id="inventory" hx-swap-oob="true">
+		<h3>Inventory</h3>
+		<ul>
+			for _, item := range inventory {
+				<li>{ item }</li>
+			}
+		</ul>
+	</div>
+
+	<style hx-swap-oob="true" id="dynamic-styles">
+		:root {
+			--background-color: { bgColor };
+		}
+	</style>
+}

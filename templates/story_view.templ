@@ -1,13 +1,19 @@
 package templates
 
-templ StoryView(initialStory string) {
+templ StoryView(initialStory string, inventory []string, bgColor string) {
+	<style>
+		:root {
+			--background-color: { bgColor };
+		}
+	</style>
+
 	<div id="story-history">
 		<div class="story-page">
 			<p>{ initialStory }</p>
 		</div>
 	</div>
 
-	<form id="response-form" hx-post="/generate" hx-target="#story-history" hx-swap="innerHTML" hx-indicator="#spinner">
+	<form id="response-form" hx-post="/generate" hx-target="body" hx-swap="none" hx-indicator="#spinner">
 		<input type="text" id="prompt" name="prompt" autofocus="autofocus" placeholder="What do you do?"/>
 		<button type="submit">Send</button>
 		<span id="word-count">0/15 words</span>
@@ -16,7 +22,9 @@ templ StoryView(initialStory string) {
 	<div id="inventory">
 		<h3>Inventory</h3>
 		<ul>
-			<!-- Items will be listed here -->
+			for _, item := range inventory {
+				<li>{ item }</li>
+			}
 		</ul>
 	</div>
 
@@ -44,6 +52,15 @@ templ StoryView(initialStory string) {
 			if (words.length > 15) {
 				e.preventDefault();
 				alert('Your response cannot be more than 15 words.');
+			}
+		});
+
+		// Clear the input after a successful request
+		responseForm.addEventListener('htmx:afterRequest', function(evt) {
+			if (evt.detail.successful) {
+				promptInput.value = '';
+				wordCountSpan.textContent = '0/15 words';
+				wordCountSpan.style.color = '#666';
 			}
 		});
 	</script>

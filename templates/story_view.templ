@@ -19,7 +19,7 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 		<strong>Status:</strong>
 		<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
 		if len(playerStatus.Conditions) > 0 {
-			<span class="condition"> | { strings.Join(playerStatus.Conditions, ", ") }</span>
+			<span> | </span><span class="condition">{ strings.Join(playerStatus.Conditions, ", ") }</span>
 		}
 	</div>
 

@@ -4,7 +4,7 @@
 
 ---
 
-<img src="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a" alt="Mark Twain writing a sci-fi novel" width=400>
+<img src="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a" alt="Mark Twain writing a sci-fi novel" width=600>
 
 ---
 

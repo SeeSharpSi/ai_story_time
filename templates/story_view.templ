@@ -2,8 +2,9 @@ package templates
 
 import "fmt"
 import "story_ai/story"
+import "strings"
 
-templ StoryView(initialStory string, inventory []story.Item, bgColor string) {
+templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string) {
 	<div id="dynamic-styles-wrapper">
 		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
 	</div>
@@ -12,6 +13,14 @@ templ StoryView(initialStory string, inventory []story.Item, bgColor string) {
 		<div class="story-page">
 			@templ.Raw(initialStory)
 		</div>
+	</div>
+
+	<div id="player-status">
+		<strong>Status:</strong>
+		<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
+		if len(playerStatus.Conditions) > 0 {
+			<span class="condition"> | { strings.Join(playerStatus.Conditions, ", ") }</span>
+		}
 	</div>
 
 	<form id="response-form" hx-post="/generate" hx-target="body" hx-swap="none" hx-indicator="#spinner">
@@ -24,7 +33,11 @@ templ StoryView(initialStory string, inventory []story.Item, bgColor string) {
 		<h3>Inventory</h3>
 		<ul>
 			for _, item := range inventory {
-				<li>{ item.Name }</li>
+				<li>
+					<div class="tooltip">{ item.Name }
+						<span class="tooltiptext">{ FormatProperties(item.Properties) }</span>
+					</div>
+				</li>
 			}
 		</ul>
 	</div>

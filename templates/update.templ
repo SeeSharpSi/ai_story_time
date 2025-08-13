@@ -2,8 +2,17 @@ package templates
 
 import "story_ai/story"
 import "fmt"
+import "strings"
 
-templ Update(storyHistory []story.StoryPage, inventory []story.Item, bgColor string, gameOver bool, currentGenre string, consequenceModel string) {
+templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, currentGenre string, consequenceModel string) {
+	<div id="player-status" hx-swap-oob="true">
+		<strong>Status:</strong>
+		<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
+		if len(playerStatus.Conditions) > 0 {
+			<span class="condition"> | { strings.Join(playerStatus.Conditions, ", ") }</span>
+		}
+	</div>
+
 	<div id="story-history" hx-swap-oob="true">
 		for _, page := range storyHistory {
 			<div class="story-page">
@@ -17,7 +26,11 @@ templ Update(storyHistory []story.StoryPage, inventory []story.Item, bgColor str
 		<h3>Inventory</h3>
 		<ul>
 			for _, item := range inventory {
-				<li>{ item.Name }</li>
+				<li>
+					<div class="tooltip">{ item.Name }
+						<span class="tooltiptext">{ FormatProperties(item.Properties) }</span>
+					</div>
+				</li>
 			}
 		</ul>
 	</div>

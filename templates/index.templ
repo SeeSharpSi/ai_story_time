@@ -173,6 +173,50 @@ templ Index(title string) {
 					background-color: #1e1e1e;
 					color: #d4d4d4;
 				}
+
+				/* Player Status Bar */
+				#player-status {
+					text-align: left;
+					margin-bottom: 20px;
+					padding: 10px;
+					background-color: #1e1e1e;
+					border: 1px solid #333;
+					border-radius: 4px;
+				}
+				.condition {
+					color: #fd971f; /* Orange */
+					font-style: italic;
+				}
+
+				/* Tooltip Styles */
+				.tooltip {
+					position: relative;
+					display: inline-block;
+					cursor: help;
+					border-bottom: 1px dotted #ccc;
+				}
+
+				.tooltip .tooltiptext {
+					visibility: hidden;
+					width: 160px;
+					background-color: #555;
+					color: #fff;
+					text-align: center;
+					border-radius: 6px;
+					padding: 5px;
+					position: absolute;
+					z-index: 1;
+					bottom: 125%;
+					left: 50%;
+					margin-left: -80px;
+					opacity: 0;
+					transition: opacity 0.3s;
+				}
+
+				.tooltip:hover .tooltiptext {
+					visibility: visible;
+					opacity: 1;
+				}
 			</style>
 		</head>
 		<body>

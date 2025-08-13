@@ -28,25 +28,25 @@ templ Index(title string) {
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 			<style>
-				:root {
-					--background-color: #121212; /* Very dark grey */
+								:root {
+					--background-color: #181818; /* Light Grey */
 					--primary-color: #3498db; /* Default Blue */
-					--send-button-color: #252526; /* Default to container background */
+					--send-button-color: #3498db; /* Default Blue */
 				}
 
 				.theme-fantasy {
 					--primary-color: #8e44ad; /* Wisteria Purple */
-					--send-button-color: #512e5f; /* Dim Purple */
+					--send-button-color: #8e44ad; /* Wisteria Purple */
 				}
 
 				.theme-sci-fi {
 					--primary-color: #2980b9; /* Belize Hole Blue */
-					--send-button-color: #1a5276; /* Dim Blue */
+					--send-button-color: #2980b9; /* Belize Hole Blue */
 				}
 
 				.theme-historical-fiction {
 					--primary-color: #c0392b; /* Pomegranate Red */
-					--send-button-color: #78281f; /* Dim Red */
+					--send-button-color: #c0392b; /* Pomegranate Red */
 				}
 
 				body { 
@@ -86,40 +86,38 @@ templ Index(title string) {
 					font-family: 'JetBrains Mono', monospace;
 					padding: 10px 20px; 
 					font-size: 1em; 
-					border: none; 
-					background-color: var(--primary-color);
-					color: white; 
+					border: 2px solid;
+					background-color: #333;
+					color: #d4d4d4; 
 					border-radius: 4px; 
 					cursor: pointer; 
-					transition: background-color 0.3s;
-				}
-				button:hover {
-					filter: brightness(1.2);
-				}
-
-				.genre-buttons button {
+					transition: background-color 0.3s, color 0.3s;
 					font-weight: bold;
 				}
 
-				.genre-buttons .fantasy-btn { background-color: #512e5f; }
-				.genre-buttons .scifi-btn { background-color: #1a5276; }
-				.genre-buttons .historical-fiction-btn { background-color: #78281f; }
+				.genre-buttons .fantasy-btn { border-color: #8e44ad; }
+				.genre-buttons .scifi-btn { border-color: #2980b9; }
+				.genre-buttons .historical-fiction-btn { border-color: #c0392b; }
+
+				.genre-buttons .fantasy-btn:hover { background-color: #8e44ad; color: white; }
+				.genre-buttons .scifi-btn:hover { background-color: #2980b9; color: white; }
+				.genre-buttons .historical-fiction-btn:hover { background-color: #c0392b; color: white; }
 
 				/* Make the Send button less prominent */
 				#response-form button {
-					background-color: var(--send-button-color);
-					border: 1px solid #333;
-					font-weight: bold;
+					border-color: var(--send-button-color);
 				}
 
 				#response-form button:hover {
-					background-color: #333;
+					background-color: var(--send-button-color);
+					color: white;
 				}
 
 				/* Spinner styles */
 				.loader {
-					border: 8px solid #e0e0e0; /* Light grey */
-					border-top: 8px solid #252526; /* Match Send button */
+					border: 8px solid transparent;
+					border-top: 8px solid var(--background-color);
+					border-bottom: 8px solid white;
 					border-radius: 50%;
 					width: 60px;
 					height: 60px;

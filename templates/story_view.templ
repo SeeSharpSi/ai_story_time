@@ -1,15 +1,15 @@
 package templates
 
+import "fmt"
+
 templ StoryView(initialStory string, inventory []string, bgColor string) {
-	<style>
-		:root {
-			--background-color: { bgColor };
-		}
-	</style>
+	<div id="dynamic-styles-wrapper">
+		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
+	</div>
 
 	<div id="story-history">
 		<div class="story-page">
-			<p>{ initialStory }</p>
+			@templ.Raw(initialStory)
 		</div>
 	</div>
 

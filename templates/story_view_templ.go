@@ -8,6 +8,8 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "fmt"
+
 func StoryView(initialStory string, inventory []string, bgColor string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -29,43 +31,46 @@ func StoryView(initialStory string, inventory []string, bgColor string) templ.Co
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\n\t\t:root {\n\t\t\t--background-color: { bgColor };\n\t\t}\n\t</style><div id=\"story-history\"><div class=\"story-page\"><p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"dynamic-styles-wrapper\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(initialStory)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 12, Col: 20}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		templ_7745c5c3_Err = templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p></div></div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div id=\"story-history\"><div class=\"story-page\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templ.Raw(initialStory).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, item := range inventory {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(item)
+			var templ_7745c5c3_Var2 string
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(item)
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 26, Col: 14}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</ul></div><script>\n\t\tconst promptInput = document.getElementById('prompt');\n\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\tconst responseForm = document.getElementById('response-form');\n\n\t\tpromptInput.addEventListener('input', () => {\n\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\tlet wordCount = words.length;\n\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\twordCount = 0;\n\t\t\t}\n\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\tif (wordCount > 15) {\n\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t} else {\n\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t}\n\t\t});\n\n\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\tif (words.length > 15) {\n\t\t\t\te.preventDefault();\n\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t}\n\t\t});\n\n\t\t// Clear the input after a successful request\n\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\tif (evt.detail.successful) {\n\t\t\t\tpromptInput.value = '';\n\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t}\n\t\t});\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ul></div><script>\n\t\tconst promptInput = document.getElementById('prompt');\n\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\tconst responseForm = document.getElementById('response-form');\n\n\t\tpromptInput.addEventListener('input', () => {\n\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\tlet wordCount = words.length;\n\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\twordCount = 0;\n\t\t\t}\n\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\tif (wordCount > 15) {\n\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t} else {\n\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t}\n\t\t});\n\n\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\tif (words.length > 15) {\n\t\t\t\te.preventDefault();\n\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t}\n\t\t});\n\n\t\t// Clear the input after a successful request\n\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\tif (evt.detail.successful) {\n\t\t\t\tpromptInput.value = '';\n\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t}\n\t\t});\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

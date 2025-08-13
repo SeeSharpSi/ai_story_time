@@ -1,13 +1,14 @@
 package templates
 
 import "story_ai/story"
+import "fmt"
 
 templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string) {
 	<div id="story-history" hx-swap-oob="true">
 		for _, page := range storyHistory {
 			<div class="story-page">
 				<p class="user-response">{ page.Prompt }</p>
-				<p>{ page.Response }</p>
+				@templ.Raw(page.Response)
 			</div>
 		}
 	</div>
@@ -21,9 +22,7 @@ templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string)
 		</ul>
 	</div>
 
-	<style hx-swap-oob="true" id="dynamic-styles">
-		:root {
-			--background-color: { bgColor };
-		}
-	</style>
+	<div id="dynamic-styles-wrapper" hx-swap-oob="true">
+		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
+	</div>
 }

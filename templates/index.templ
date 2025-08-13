@@ -13,7 +13,7 @@ templ Index(title string) {
 			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 			<style>
 				:root {
-					--background-color: #1e1e1e;
+					--background-color: #9c9c9c;
 				}
 
 				body { 
@@ -42,6 +42,11 @@ templ Index(title string) {
 					color: #ffffff;
 				}
 				.rules { text-align: left; margin-bottom: 30px; }
+				.genre-buttons {
+					display: flex;
+					justify-content: space-around;
+					margin-top: 20px;
+				}
 				button { 
 					font-family: 'JetBrains Mono', monospace;
 					padding: 10px 20px; 
@@ -60,7 +65,7 @@ templ Index(title string) {
 				/* Spinner styles */
 				.loader {
 					border: 8px solid #333;
-					border-top: 8px solid #007acc;
+					border-top: 8px solid var(--background-color);
 					border-radius: 50%;
 					width: 60px;
 					height: 60px;
@@ -93,6 +98,14 @@ templ Index(title string) {
 					color: #4ec9b0; /* Teal */
 					font-style: italic;
 				}
+				.item-added {
+					color: #a6e22e; /* Lime Green */
+					font-weight: bold;
+				}
+				.item-removed {
+					color: #f92672; /* Pink/Red */
+					text-decoration: line-through;
+				}
 				#response-form {
 					display: flex;
 					margin-bottom: 20px;
@@ -106,6 +119,7 @@ templ Index(title string) {
 					background-color: #1e1e1e;
 					color: #d4d4d4;
 					font-family: 'JetBrains Mono', monospace;
+					margin-right: 10px; /* Add space between input and button */
 				}
 				#inventory {
 					text-align: left;
@@ -124,19 +138,28 @@ templ Index(title string) {
 		</head>
 		<body>
 			<div id="story-container">
-				<h1>Welcome to the Interactive Story</h1>
+				<h1>Welcome, Traveler</h1>
 				<div class="rules">
 					<h3>Rules of Play:</h3>
 					<ul>
-						<li>You will be presented with a story.</li>
-						<li>Respond to the story in 15 words or less.</li>
-						<li>Your choices will shape the narrative.</li>
-						<li>You can interact with characters and pick up items.</li>
+						<li>You will be presented with a story</li>
+						<li>Respond to the story in 15 words or less</li>
+						<li>Your choices will shape the narrative</li>
+						<li>You can interact with characters and pick up items</li>
 					</ul>
+					<h3>Choose Your Adventure:</h3>
 				</div>
-				<button hx-post="/start" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
-					Begin
-				</button>
+				<div class="genre-buttons">
+					<button hx-post="/start?genre=fantasy" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+						Fantasy
+					</button>
+					<button hx-post="/start?genre=sci-fi" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+						Sci-Fi
+					</button>
+					<button hx-post="/start?genre=historical-fiction" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+						Historical Fiction
+					</button>
+				</div>
 			</div>
 
 			<div id="spinner" class="htmx-indicator">

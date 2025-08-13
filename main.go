@@ -27,6 +27,7 @@ func main() {
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-2.5-flash")
+	// model := client.GenerativeModel("gemini-2.5-pro")
 
 	h := &handlers.Handler{
 		Model: model,

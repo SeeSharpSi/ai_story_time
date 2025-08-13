@@ -29,12 +29,12 @@ type AIResponse struct {
 var (
 	storyHistory []story.StoryPage
 	inventory    []string
+	currentGenre string
 )
 
 // parseAIResponse unmarshals the JSON from the AI.
 func parseAIResponse(response string) (AIResponse, error) {
 	var aiResp AIResponse
-	// The AI might sometimes wrap the JSON in markdown, so we clean it first.
 	cleanResponse := strings.TrimPrefix(response, "```json\n")
 	cleanResponse = strings.TrimSuffix(cleanResponse, "\n```")
 
@@ -43,7 +43,25 @@ func parseAIResponse(response string) (AIResponse, error) {
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(prompts.SystemPrompt))
+	genre := r.URL.Query().Get("genre")
+	var prompt string
+	switch genre {
+	case "fantasy":
+		prompt = prompts.FantasyPrompt
+		currentGenre = "fantasy"
+	case "sci-fi":
+		prompt = prompts.SciFiPrompt
+		currentGenre = "sci-fi"
+	case "historical-fiction":
+		prompt = prompts.HistoricalFictionPrompt
+		currentGenre = "historical-fiction"
+	default:
+		// Fallback to fantasy if no genre is specified
+		prompt = prompts.FantasyPrompt
+		currentGenre = "fantasy"
+	}
+
+	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(prompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		http.Error(w, "The AI failed to start the story. Please try again.", http.StatusInternalServerError)
 		return
@@ -55,7 +73,10 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reset inventory and story history for a new game.
+	if aiResp.BackgroundColor == "" {
+		aiResp.BackgroundColor = "#1e1e1e"
+	}
+
 	inventory = aiResp.Items
 	storyHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.Story}}
 
@@ -65,8 +86,10 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	prompt := r.FormValue("prompt")
 
-	// Handle the restart command.
 	if strings.ToLower(strings.TrimSpace(prompt)) == "restart" {
+		// To restart, we need to know the current genre.
+		// We'll pass it back to the start handler.
+		r.URL.RawQuery = "genre=" + currentGenre
 		h.StartStory(w, r)
 		return
 	}
@@ -76,17 +99,31 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullStory := prompts.SystemPrompt
-	for _, page := range storyHistory {
-		fullStory += fmt.Sprintf("%s\n%s\n", page.Prompt, page.Response)
+	var systemPrompt string
+	switch currentGenre {
+	case "fantasy":
+		systemPrompt = prompts.FantasyPrompt
+	case "sci-fi":
+		systemPrompt = prompts.SciFiPrompt
+	case "historical-fiction":
+		systemPrompt = prompts.HistoricalFictionPrompt
+	default:
+		systemPrompt = prompts.FantasyPrompt
 	}
-	fullStory += fmt.Sprintf("%s\n", prompt)
+
+	var historyBuilder strings.Builder
+	historyBuilder.WriteString(systemPrompt)
+	for _, page := range storyHistory {
+		historyBuilder.WriteString(fmt.Sprintf("%s\n%s\n", page.Prompt, page.Response))
+	}
+	historyBuilder.WriteString(fmt.Sprintf("%s\n", prompt))
+	fullStory := historyBuilder.String()
 
 	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullStory))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: prompt, Response: "[The AI's response was blocked. Try something else.]"}
 		storyHistory = append(storyHistory, errorPage)
-		templates.Update(storyHistory, inventory, "#1e1e1e").Render(context.Background(), w) // Default color on error
+		templates.Update(storyHistory, inventory, "#1e1e1e").Render(context.Background(), w)
 		return
 	}
 
@@ -94,11 +131,14 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorPage := story.StoryPage{Prompt: prompt, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		storyHistory = append(storyHistory, errorPage)
-		templates.Update(storyHistory, inventory, "#1e1e1e").Render(context.Background(), w) // Default color on error
+		templates.Update(storyHistory, inventory, "#1e1e1e").Render(context.Background(), w)
 		return
 	}
+	
+	if aiResp.BackgroundColor == "" {
+		aiResp.BackgroundColor = "#1e1e1e"
+	}
 
-	// If the game is over, don't process inventory changes.
 	if !aiResp.GameOver {
 		itemsToRemove := make(map[string]bool)
 		for _, item := range aiResp.ItemsRemoved {

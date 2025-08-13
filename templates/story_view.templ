@@ -55,7 +55,6 @@ templ StoryView(initialStory string, inventory []string, bgColor string) {
 			}
 		});
 
-		// Clear the input after a successful request
 		responseForm.addEventListener('htmx:afterRequest', function(evt) {
 			if (evt.detail.successful) {
 				promptInput.value = '';

@@ -51,9 +51,7 @@ func parseAIResponse(response string) (AIResponse, error) {
 		return aiResp, err
 	}
 
-	// Failsafe: Replace any Markdown bolding with <strong> tags.
 	aiResp.Story = markdownBoldRegex.ReplaceAllString(aiResp.Story, "<strong>$1</strong>")
-	// Failsafe: Replace any Markdown italics with <em> tags.
 	aiResp.Story = markdownItalicRegex.ReplaceAllString(aiResp.Story, "<em>$1</em>")
 
 	return aiResp, nil
@@ -103,10 +101,6 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		prompt += prompts.FantasyPrompt
 		sess.CurrentGenre = "fantasy"
 	}
-
-	// fmt.Println("--- Initial Prompt ---")
-	// fmt.Println(prompt)
-	// fmt.Println("--------------------")
 
 	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(prompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
@@ -180,10 +174,6 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	historyBuilder.WriteString(fmt.Sprintf("%s\n", prompt))
 	fullStory := historyBuilder.String()
 
-	// fmt.Println("---")
-	// fmt.Println(fullStory)
-	// fmt.Println("------")
-
 	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullStory))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: prompt, Response: "[The AI's response was blocked. Try something else.]"}
@@ -243,7 +233,6 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		pdf.Ln(10)
 
 		pdf.SetFontStyle("")
-		// Basic HTML tag removal
 		cleanResponse := strings.ReplaceAll(page.Response, "<strong>", "")
 		cleanResponse = strings.ReplaceAll(cleanResponse, "</strong>", "")
 		cleanResponse = strings.ReplaceAll(cleanResponse, "<em>", "")

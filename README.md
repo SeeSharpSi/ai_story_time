@@ -4,8 +4,7 @@
 
 ---
 
-*DALL-E image of a robot writing a story in a fantasy setting*
-![A robot hand writing a fantasy story with a quill pen on a scroll.](https://i.imgur.com/mZ3tH4G.png)
+![A robot hand writing a fantasy story with a quill pen on a scroll.](https://i.imgur.com/2p4S0sN.png)
 
 ---
 

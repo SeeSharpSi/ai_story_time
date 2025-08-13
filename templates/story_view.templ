@@ -14,7 +14,7 @@ templ StoryView(initialStory string, inventory []string, bgColor string) {
 	</div>
 
 	<form id="response-form" hx-post="/generate" hx-target="body" hx-swap="none" hx-indicator="#spinner">
-		<input type="text" id="prompt" name="prompt" autofocus="autofocus" placeholder="What do you do?"/>
+		<input type="text" id="prompt" name="prompt" autofocus="autofocus" autocomplete="off" placeholder="What do you do?"/>
 		<button type="submit">Send</button>
 		<span id="word-count">0/15 words</span>
 	</form>

@@ -47,7 +47,7 @@ func StoryView(initialStory string, inventory []string, bgColor string) templ.Co
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" autocomplete=\"off\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

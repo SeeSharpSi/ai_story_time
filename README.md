@@ -4,7 +4,7 @@
 
 ---
 
-![Mark Twain writing a sci-fi book.](https://github.com/user-attachments/assets/3d779e60-cf27-4bc2-93ca-bbdbeb110415)
+<img src="https://github.com/user-attachments/assets/3d779e60-cf27-4bc2-93ca-bbdbeb110415" alt="Mark Twain writing a sci-fi novel" width=400>
 
 ---
 

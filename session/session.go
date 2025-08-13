@@ -11,12 +11,13 @@ import (
 
 // Session holds the state for a single user's story.
 type Session struct {
-	ID           string
-	StoryHistory []story.StoryPage
-	Inventory    []string
-	CurrentGenre string
+	ID            string
+	StoryHistory  []story.StoryPage
+	Inventory     []string
+	CurrentGenre  string
 	CurrentAuthor string
-	LastAccessed time.Time
+	SurviveMode   bool
+	LastAccessed  time.Time
 }
 
 // Manager handles the creation, storage, and retrieval of sessions.

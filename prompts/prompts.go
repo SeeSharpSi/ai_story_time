@@ -35,3 +35,7 @@ const HistoricalFictionPrompt = basePrompt + `
 ---
 STORY SO FAR:
 `
+
+const SurvivePrompt = `
+- This is SURVIVAL MODE. The story should be dangerous and challenging. The AI should prefer outcomes where the user gets hurt or dies if they make poor survival choices.
+`

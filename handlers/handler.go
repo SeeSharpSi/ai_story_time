@@ -64,6 +64,8 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	genre := r.URL.Query().Get("genre")
+	survive := r.URL.Query().Get("survive") == "true"
+	sess.SurviveMode = survive
 
 	rand.Seed(time.Now().UnixNano())
 	author := authors[rand.Intn(len(authors))]
@@ -122,7 +124,11 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	prompt := r.FormValue("prompt")
 
 	if strings.ToLower(strings.TrimSpace(prompt)) == "restart" {
-		r.URL.RawQuery = "genre=" + sess.CurrentGenre
+		query := "genre=" + sess.CurrentGenre
+		if sess.SurviveMode {
+			query += "&survive=true"
+		}
+		r.URL.RawQuery = query
 		h.StartStory(w, r)
 		return
 	}
@@ -142,6 +148,11 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		systemPrompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, sess.CurrentAuthor)
 	default:
 		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
+	}
+
+	if sess.SurviveMode {
+		systemPrompt += prompts.SurvivePrompt
+		print("survival ACTIVATED")
 	}
 
 	var historyBuilder strings.Builder

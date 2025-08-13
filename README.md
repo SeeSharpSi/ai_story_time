@@ -5,18 +5,23 @@
 ---
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a" alt="Mark Twain writing a sci-fi novel" width=600>
+  <img src="https://github.com/user-attachments/assets/131c1b8d-537a-4e93-87e8-940b57b83e6a" alt="A robot hand writing a fantasy story in a book" width=600>
 </p>
 
 ---
 
 ## ✨ Features
 
+*   **Systemic, Winnable Gameplay:** The AI acts as a Game Master, managing a persistent world state and presenting solvable challenges. Player agency is paramount.
 *   **Dynamic AI Storytelling:** Powered by Google's Gemini model, every adventure is unique and unpredictable. The story adapts to your choices in real-time.
-*   **Author-Styled Narratives:** Begin your adventure in the literary style of a famous author, like William Faulkner or Mark Twain, for a unique narrative flavor.
-*   **Hardcore Survival Mode:** Flip the "Survive" switch to raise the stakes. In this mode, the AI prioritizes challenging, dangerous outcomes where poor choices can easily lead to your demise.
-*   **Genre Selection:** Choose from Fantasy, Sci-Fi, or Historical Fiction to guide the theme of your adventure.
-*   **Interactive Inventory:** The AI tracks items you pick up or lose, which you can use to solve problems and navigate the world.
+*   **Author-Styled Narratives:** Begin your adventure in the literary style of a famous author like J.R.R. Tolkien, H.P. Lovecraft, or Edgar Allan Poe for a unique narrative flavor.
+*   **Selectable Difficulty:** Choose your preferred playstyle:
+    *   **Exploratory:** A forgiving mode focused on story and discovery.
+    *   **Challenging:** A balanced experience with real risks and rewards.
+    *   **Punishing:** A hardcore mode where poor choices can have severe and deadly consequences.
+*   **Genre-Themed UI:** The color scheme of the app changes to a unique dark theme based on your chosen genre (Fantasy, Sci-Fi, or Historical Fiction).
+*   **Interactive Inventory & World:** The AI tracks items, which have properties and can be used to solve puzzles by interacting with objects in the environment.
+*   **Subtle State Display:** Keep track of your health and item properties through an immersive, minimalist UI without breaking the narrative flow.
 *   **Download Your Story:** Once your adventure concludes, you can download the entire story as a beautifully formatted PDF to save or share.
 *   **Modern, Fast Frontend:** The UI is built with Go, HTMX, and Templ, delivering a seamless, server-rendered experience without heavy client-side JavaScript.
 
@@ -71,7 +76,7 @@ The application will be available at `http://localhost:9779`.
 
 1.  Open your web browser to `http://localhost:9779`.
 2.  **Choose Your Adventure:** Select a genre (Fantasy, Sci-Fi, or Historical Fiction).
-3.  **(Optional) Flip the Switch:** For a true challenge, enable the "Survive" mode.
+3.  **Choose Your Difficulty:** Select a difficulty level from the dropdown (Exploratory, Challenging, or Punishing).
 4.  Click a genre button to begin!
 5.  Read the AI-generated scenario and type your response (15 words or less) into the input box.
 6.  Click "Send" and watch the story unfold based on your choices.

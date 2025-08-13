@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"story_ai/handlers"
+	"story_ai/session"
 	"story_ai/templates"
 
 	"github.com/google/generative-ai-go/genai"
@@ -27,10 +28,11 @@ func main() {
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-2.5-flash")
-	// model := client.GenerativeModel("gemini-2.5-pro")
+	sessionManager := session.NewManager()
 
 	h := &handlers.Handler{
-		Model: model,
+		Model:   model,
+		Manager: sessionManager,
 	}
 
 	mux := http.NewServeMux()
@@ -38,7 +40,6 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// The root now renders the welcome page.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -47,7 +48,6 @@ func main() {
 		templates.Index("Interactive Story").Render(context.Background(), w)
 	})
 
-	// The /start route begins the story.
 	mux.HandleFunc("/start", h.StartStory)
 	mux.HandleFunc("/generate", h.Generate)
 	mux.HandleFunc("/download", h.DownloadStory)

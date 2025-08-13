@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"story_ai/prompts"
+	"story_ai/session"
 	"story_ai/story"
 	"story_ai/templates"
 	"strings"
@@ -17,7 +18,8 @@ import (
 )
 
 type Handler struct {
-	Model *genai.GenerativeModel
+	Model   *genai.GenerativeModel
+	Manager *session.Manager
 }
 
 // AIResponse matches the JSON structure we expect from the AI.
@@ -29,13 +31,7 @@ type AIResponse struct {
 	BackgroundColor string   `json:"background_color"`
 }
 
-var (
-	storyHistory []story.StoryPage
-	inventory    []string
-	currentGenre string
-	currentAuthor string
-	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
-)
+var authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
 
 // parseAIResponse unmarshals the JSON from the AI.
 func parseAIResponse(response string) (AIResponse, error) {
@@ -48,6 +44,9 @@ func parseAIResponse(response string) (AIResponse, error) {
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
+	sess, cookie := h.Manager.GetOrCreateSession(r)
+	http.SetCookie(w, &cookie)
+
 	genre := r.URL.Query().Get("genre")
 	
 	rand.Seed(time.Now().UnixNano())
@@ -62,22 +61,22 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 			author = string(resp.Candidates[0].Content.Parts[0].(genai.Text))
 		}
 	}
-	currentAuthor = author
+	sess.CurrentAuthor = author
 
 	var prompt string
 	switch genre {
 	case "fantasy":
-		prompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
-		currentGenre = "fantasy"
+		prompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
+		sess.CurrentGenre = "fantasy"
 	case "sci-fi":
-		prompt = fmt.Sprintf(prompts.SciFiPrompt, currentAuthor)
-		currentGenre = "sci-fi"
+		prompt = fmt.Sprintf(prompts.SciFiPrompt, sess.CurrentAuthor)
+		sess.CurrentGenre = "sci-fi"
 	case "historical-fiction":
-		prompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, currentAuthor)
-		currentGenre = "historical-fiction"
+		prompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, sess.CurrentAuthor)
+		sess.CurrentGenre = "historical-fiction"
 	default:
-		prompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
-		currentGenre = "fantasy"
+		prompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
+		sess.CurrentGenre = "fantasy"
 	}
 
 	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(prompt))
@@ -96,17 +95,18 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		aiResp.BackgroundColor = "#1e1e1e"
 	}
 
-	inventory = aiResp.Items
-	storyHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.Story}}
+	sess.Inventory = aiResp.Items
+	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.Story}}
 
-	templates.StoryView(aiResp.Story, inventory, aiResp.BackgroundColor).Render(context.Background(), w)
+	templates.StoryView(aiResp.Story, sess.Inventory, aiResp.BackgroundColor).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
+	sess, _ := h.Manager.GetOrCreateSession(r)
 	prompt := r.FormValue("prompt")
 
 	if strings.ToLower(strings.TrimSpace(prompt)) == "restart" {
-		r.URL.RawQuery = "genre=" + currentGenre
+		r.URL.RawQuery = "genre=" + sess.CurrentGenre
 		h.StartStory(w, r)
 		return
 	}
@@ -117,20 +117,20 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var systemPrompt string
-	switch currentGenre {
+	switch sess.CurrentGenre {
 	case "fantasy":
-		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
+		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
 	case "sci-fi":
-		systemPrompt = fmt.Sprintf(prompts.SciFiPrompt, currentAuthor)
+		systemPrompt = fmt.Sprintf(prompts.SciFiPrompt, sess.CurrentAuthor)
 	case "historical-fiction":
-		systemPrompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, currentAuthor)
+		systemPrompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, sess.CurrentAuthor)
 	default:
-		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, currentAuthor)
+		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
 	}
 
 	var historyBuilder strings.Builder
 	historyBuilder.WriteString(systemPrompt)
-	for _, page := range storyHistory {
+	for _, page := range sess.StoryHistory {
 		historyBuilder.WriteString(fmt.Sprintf("%s\n%s\n", page.Prompt, page.Response))
 	}
 	historyBuilder.WriteString(fmt.Sprintf("%s\n", prompt))
@@ -139,16 +139,16 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullStory))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: prompt, Response: "[The AI's response was blocked. Try something else.]"}
-		storyHistory = append(storyHistory, errorPage)
-		templates.Update(storyHistory, inventory, "#1e1e1e", false).Render(context.Background(), w)
+		sess.StoryHistory = append(sess.StoryHistory, errorPage)
+		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre).Render(context.Background(), w)
 		return
 	}
 
 	aiResp, err := parseAIResponse(string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
 		errorPage := story.StoryPage{Prompt: prompt, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
-		storyHistory = append(storyHistory, errorPage)
-		templates.Update(storyHistory, inventory, "#1e1e1e", false).Render(context.Background(), w)
+		sess.StoryHistory = append(sess.StoryHistory, errorPage)
+		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre).Render(context.Background(), w)
 		return
 	}
 	
@@ -163,20 +163,21 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var newInventory []string
-		for _, item := range inventory {
+		for _, item := range sess.Inventory {
 			if !itemsToRemove[item] {
 				newInventory = append(newInventory, item)
 			}
 		}
-		inventory = newInventory
-		inventory = append(inventory, aiResp.Items...)
+		sess.Inventory = newInventory
+		sess.Inventory = append(sess.Inventory, aiResp.Items...)
 	}
 
-	storyHistory = append(storyHistory, story.StoryPage{Prompt: prompt, Response: aiResp.Story})
-	templates.Update(storyHistory, inventory, aiResp.BackgroundColor, aiResp.GameOver).Render(context.Background(), w)
+	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: prompt, Response: aiResp.Story})
+	templates.Update(sess.StoryHistory, sess.Inventory, aiResp.BackgroundColor, aiResp.GameOver, sess.CurrentGenre).Render(context.Background(), w)
 }
 
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
+	sess, _ := h.Manager.GetOrCreateSession(r)
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 	pdf.SetFont("Arial", "B", 16)
@@ -184,15 +185,12 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(20)
 
 	pdf.SetFont("Arial", "", 12)
-	for _, page := range storyHistory {
-		// User prompt
+	for _, page := range sess.StoryHistory {
 		pdf.SetFontStyle("I")
 		pdf.Write(5, "You: "+page.Prompt)
 		pdf.Ln(10)
 
-		// AI response
 		pdf.SetFontStyle("")
-		// We need to decode the HTML entities for the PDF
 		cleanResponse := strings.ReplaceAll(page.Response, `<span class="item-added">`, "")
 		cleanResponse = strings.ReplaceAll(cleanResponse, `<span class="item-removed">`, "")
 		cleanResponse = strings.ReplaceAll(cleanResponse, `</span>`, "")

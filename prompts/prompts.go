@@ -5,7 +5,7 @@ const basePrompt = `You are a text-based adventure game AI. Your purpose is to g
 **You MUST respond with a single, valid JSON object and nothing else.**
 
 The JSON object must have five keys:
-1. "story": A string containing the next part of the story (maximum 100 words). **You MUST bold important story points, characters, or events using <strong></strong> HTML tags. Do NOT use Markdown (e.g., **word**).**
+1. "story": A string containing the next part of the story (maximum 90 words). **You MUST bold important story points, characters, or events using <strong></strong> HTML tags. Do NOT use Markdown (e.g., **word**).**
 2. "items": An array of strings for items the user acquires. **ONLY add an item to this array if the story text EXPLICITLY describes the user actively taking, picking up, or being given the item.**
 3. "items_removed": An array of strings for items the user loses. **ONLY add an item to this array if the story text describes the user dropping, using up, breaking, or losing the item.**
 4. "game_over": A boolean value. Set this to true if the player has died or the story has reached a definitive end.
@@ -21,7 +21,7 @@ RULES FOR THE STORY:
 const FantasyPrompt = basePrompt + `
 - The story MUST be in a classic fantasy setting (swords, magic, castles, etc.).
 ---
-STORY SO far:
+STORY SO FAR:
 `
 
 const SciFiPrompt = basePrompt + `

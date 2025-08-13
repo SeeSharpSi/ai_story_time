@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
@@ -31,16 +32,27 @@ type AIResponse struct {
 	BackgroundColor string   `json:"background_color"`
 }
 
-var authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
+var (
+	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
+	// Regex to find Markdown bolding (**text**)
+	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
+)
 
-// parseAIResponse unmarshals the JSON from the AI.
+// parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
 func parseAIResponse(response string) (AIResponse, error) {
 	var aiResp AIResponse
 	cleanResponse := strings.TrimPrefix(response, "```json\n")
 	cleanResponse = strings.TrimSuffix(cleanResponse, "\n```")
 
 	err := json.Unmarshal([]byte(cleanResponse), &aiResp)
-	return aiResp, err
+	if err != nil {
+		return aiResp, err
+	}
+
+	// Failsafe: Replace any Markdown bolding with <strong> tags.
+	aiResp.Story = markdownBoldRegex.ReplaceAllString(aiResp.Story, "<strong>$1</strong>")
+
+	return aiResp, nil
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {

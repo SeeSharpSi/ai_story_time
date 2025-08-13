@@ -3,7 +3,7 @@ package templates
 import "story_ai/story"
 import "fmt"
 
-templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string, gameOver bool, currentGenre string) {
+templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string, gameOver bool, currentGenre string, surviveMode bool) {
 	<div id="story-history" hx-swap-oob="true">
 		for _, page := range storyHistory {
 			<div class="story-page">
@@ -25,7 +25,7 @@ templ Update(storyHistory []story.StoryPage, inventory []string, bgColor string,
 	if gameOver {
 		<div id="response-form" hx-swap-oob="true">
 			<button onclick="window.location.href='/download'" class="button">Download Story</button>
-			<form hx-post="/start?genre={currentGenre}" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner" style="margin-left: 10px;">
+			<form hx-post={ fmt.Sprintf("/start?genre=%s&survive=%t", currentGenre, surviveMode) } hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner" style="margin-left: 10px;">
 				<button type="submit">Restart</button>
 			</form>
 		</div>

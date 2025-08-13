@@ -152,7 +152,6 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	if sess.SurviveMode {
 		systemPrompt += prompts.SurvivePrompt
-		print("survival ACTIVATED")
 	}
 
 	var historyBuilder strings.Builder
@@ -167,7 +166,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: prompt, Response: "[The AI's response was blocked. Try something else.]"}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.SurviveMode).Render(context.Background(), w)
 		return
 	}
 
@@ -175,7 +174,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorPage := story.StoryPage{Prompt: prompt, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.SurviveMode).Render(context.Background(), w)
 		return
 	}
 
@@ -200,7 +199,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: prompt, Response: aiResp.Story})
-	templates.Update(sess.StoryHistory, sess.Inventory, aiResp.BackgroundColor, aiResp.GameOver, sess.CurrentGenre).Render(context.Background(), w)
+	templates.Update(sess.StoryHistory, sess.Inventory, aiResp.BackgroundColor, aiResp.GameOver, sess.CurrentGenre, sess.SurviveMode).Render(context.Background(), w)
 }
 
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {

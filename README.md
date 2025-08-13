@@ -4,7 +4,7 @@
 
 ---
 
-![Mark Twain writing a sci-fi book.](https://drive.google.com/file/d/1y1aEXO-485oiPrbnfNjZMNsbsR1KMZu5/view?usp=sharing)
+![Mark Twain writing a sci-fi book.](https://github.com/user-attachments/assets/3d779e60-cf27-4bc2-93ca-bbdbeb110415)
 
 ---
 

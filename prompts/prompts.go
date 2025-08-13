@@ -1,6 +1,6 @@
 package prompts
 
-const basePrompt = `You are a text-based adventure game AI. Your purpose is to generate the next part of an interactive story based on the user's input.
+const BasePrompt = `You are a text-based adventure game AI. Your purpose is to generate the next part of an interactive story based on the user's input.
 
 **You MUST respond with a single, valid JSON object and nothing else.**
 
@@ -18,19 +18,19 @@ RULES FOR THE STORY:
 - **The story MUST be written in the style of %s.**
 `
 
-const FantasyPrompt = basePrompt + `
+const FantasyPrompt = `
 - The story MUST be in a classic fantasy setting (swords, magic, castles, etc.).
 ---
 STORY SO FAR:
 `
 
-const SciFiPrompt = basePrompt + `
+const SciFiPrompt = `
 - The story MUST be in a science fiction setting (spaceships, aliens, advanced technology, etc.).
 ---
 STORY SO FAR:
 `
 
-const HistoricalFictionPrompt = basePrompt + `
+const HistoricalFictionPrompt = `
 - The story MUST be a historical fiction scenario set before the year 1950. The user is the protagonist.
 ---
 STORY SO FAR:

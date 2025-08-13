@@ -82,20 +82,31 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.CurrentAuthor = author
 
 	var prompt string
+
+	prompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
+
+	if sess.SurviveMode {
+		prompt += prompts.SurvivePrompt
+	}
+
 	switch genre {
 	case "fantasy":
-		prompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
+		prompt += prompts.FantasyPrompt
 		sess.CurrentGenre = "fantasy"
 	case "sci-fi":
-		prompt = fmt.Sprintf(prompts.SciFiPrompt, sess.CurrentAuthor)
+		prompt += prompts.SciFiPrompt
 		sess.CurrentGenre = "sci-fi"
 	case "historical-fiction":
-		prompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, sess.CurrentAuthor)
+		prompt += prompts.HistoricalFictionPrompt
 		sess.CurrentGenre = "historical-fiction"
 	default:
-		prompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
+		prompt += prompts.FantasyPrompt
 		sess.CurrentGenre = "fantasy"
 	}
+
+	// fmt.Println("--- Initial Prompt ---")
+	// fmt.Println(prompt)
+	// fmt.Println("--------------------")
 
 	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(prompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
@@ -139,19 +150,26 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var systemPrompt string
-	switch sess.CurrentGenre {
-	case "fantasy":
-		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
-	case "sci-fi":
-		systemPrompt = fmt.Sprintf(prompts.SciFiPrompt, sess.CurrentAuthor)
-	case "historical-fiction":
-		systemPrompt = fmt.Sprintf(prompts.HistoricalFictionPrompt, sess.CurrentAuthor)
-	default:
-		systemPrompt = fmt.Sprintf(prompts.FantasyPrompt, sess.CurrentAuthor)
-	}
+
+	systemPrompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
 
 	if sess.SurviveMode {
 		systemPrompt += prompts.SurvivePrompt
+	}
+
+	switch sess.CurrentGenre {
+	case "fantasy":
+		systemPrompt += prompts.FantasyPrompt
+		sess.CurrentGenre = "fantasy"
+	case "sci-fi":
+		systemPrompt += prompts.SciFiPrompt
+		sess.CurrentGenre = "sci-fi"
+	case "historical-fiction":
+		systemPrompt += prompts.HistoricalFictionPrompt
+		sess.CurrentGenre = "historical-fiction"
+	default:
+		systemPrompt += prompts.FantasyPrompt
+		sess.CurrentGenre = "fantasy"
 	}
 
 	var historyBuilder strings.Builder
@@ -161,6 +179,10 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 	historyBuilder.WriteString(fmt.Sprintf("%s\n", prompt))
 	fullStory := historyBuilder.String()
+
+	// fmt.Println("---")
+	// fmt.Println(fullStory)
+	// fmt.Println("------")
 
 	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullStory))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {

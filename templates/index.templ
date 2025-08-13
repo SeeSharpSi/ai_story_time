@@ -31,18 +31,22 @@ templ Index(title string) {
 				:root {
 					--background-color: #121212; /* Very dark grey */
 					--primary-color: #3498db; /* Default Blue */
+					--send-button-color: #252526; /* Default to container background */
 				}
 
 				.theme-fantasy {
 					--primary-color: #8e44ad; /* Wisteria Purple */
+					--send-button-color: #512e5f; /* Dim Purple */
 				}
 
 				.theme-sci-fi {
 					--primary-color: #2980b9; /* Belize Hole Blue */
+					--send-button-color: #1a5276; /* Dim Blue */
 				}
 
 				.theme-historical-fiction {
 					--primary-color: #c0392b; /* Pomegranate Red */
+					--send-button-color: #78281f; /* Dim Red */
 				}
 
 				body { 
@@ -93,10 +97,19 @@ templ Index(title string) {
 					filter: brightness(1.2);
 				}
 
+				.genre-buttons button {
+					font-weight: bold;
+				}
+
+				.genre-buttons .fantasy-btn { background-color: #512e5f; }
+				.genre-buttons .scifi-btn { background-color: #1a5276; }
+				.genre-buttons .historical-fiction-btn { background-color: #78281f; }
+
 				/* Make the Send button less prominent */
 				#response-form button {
-					background-color: #252526; /* Same as container background */
+					background-color: var(--send-button-color);
 					border: 1px solid #333;
+					font-weight: bold;
 				}
 
 				#response-form button:hover {
@@ -263,13 +276,13 @@ templ Index(title string) {
 					<h3>Choose Your Adventure:</h3>
 				</div>
 				<div class="genre-buttons">
-					<button hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
+					<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
 						Fantasy
 					</button>
-					<button hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
+					<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
 						Sci-Fi
 					</button>
-					<button hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
+					<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
 						Historical Fiction
 					</button>
 				</div>

@@ -1,1 +1,109 @@
-2025/08/13 16:38:33 Listening on http://0.0.0.0:9779
+2025/08/13 16:44:41 Listening on http://0.0.0.0:9779
+2025/08/13 16:45:06 --- NEW GAME STATE (START) --- {
+  "player_status": {
+    "health": 100,
+    "stamina": 100,
+    "conditions": []
+  },
+  "inventory": [],
+  "environment": {
+    "location_name": "The Sun-Dappled Clearing",
+    "description": "The morning sun, a mere rumour through the overarching boughs, painted the dewy grass with shifting golds and emeralds, a soft awakening to the forest's breath. A symphony of chirps and rustles, an ancient song, whispered from the surrounding verdancy, whilst an age-old mossy stone circle stood silent vigil.",
+    "exits": {
+      "east": "Silent Stream",
+      "north": "Twisted Forest Path",
+      "south": "Ancient Grove"
+    },
+    "world_objects": [
+      {
+        "name": "mossy stone circle",
+        "properties": [
+          "ancient",
+          "cold",
+          "magical_potential"
+        ],
+        "state": "default"
+      },
+      {
+        "name": "fallen log",
+        "properties": [
+          "decaying",
+          "heavy",
+          "flammable"
+        ],
+        "state": "default"
+      }
+    ]
+  },
+  "npcs": [],
+  "active_puzzles_and_obstacles": [
+    {
+      "name": "Dense Thicket",
+      "description": "The path leading north into the 'Twisted Forest Path' is choked with a formidable wall of thorny, intertwined branches, too dense and sharp for easy passage.",
+      "status": "unsolved",
+      "solution_hints": [
+        "requires_clearing_tool",
+        "strength",
+        "fire",
+        "magical_disruption"
+      ]
+    }
+  ],
+  "rules": {
+    "consequence_model": "challenging"
+  }
+}
+2025/08/13 16:45:18 --- NEW GAME STATE (GENERATE) --- {
+  "player_status": {
+    "health": 100,
+    "stamina": 100,
+    "conditions": []
+  },
+  "inventory": [],
+  "environment": {
+    "location_name": "The Sun-Dappled Clearing",
+    "description": "The morning sun, a mere rumour through the overarching boughs, painted the dewy grass with shifting golds and emeralds, a soft awakening to the forest's breath. A symphony of chirps and rustles, an ancient song, whispered from the surrounding verdancy, whilst an age-old mossy stone circle stood silent vigil.",
+    "exits": {
+      "east": "Silent Stream",
+      "north": "Twisted Forest Path",
+      "south": "Ancient Grove"
+    },
+    "world_objects": [
+      {
+        "name": "mossy stone circle",
+        "properties": [
+          "ancient",
+          "cold",
+          "magical_potential"
+        ],
+        "state": "default"
+      },
+      {
+        "name": "fallen log",
+        "properties": [
+          "decaying",
+          "heavy",
+          "flammable"
+        ],
+        "state": "default"
+      }
+    ]
+  },
+  "npcs": [],
+  "active_puzzles_and_obstacles": [
+    {
+      "name": "Dense Thicket",
+      "description": "The path leading north into the 'Twisted Forest Path' is choked with a formidable wall of thorny, intertwined branches, too dense and sharp for easy passage.",
+      "status": "unsolved",
+      "solution_hints": [
+        "requires_clearing_tool",
+        "strength",
+        "fire",
+        "magical_disruption"
+      ]
+    }
+  ],
+  "rules": {
+    "consequence_model": "challenging"
+  }
+}

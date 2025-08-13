@@ -31,11 +31,14 @@ STORY SO FAR:
 `
 
 const HistoricalFictionPrompt = `
-- The story MUST be a historical fiction scenario set before the year 1950. The user is the protagonist.
+- The story MUST be a historical scenario set before the year 1950. The user is the protagonist.
+- The scenario must be a real historical event that happened. 
 ---
 STORY SO FAR:
 `
 
 const SurvivePrompt = `
 - This is SURVIVAL MODE. The story should be dangerous and challenging. The AI should prefer outcomes where the user gets hurt or dies if they make poor survival choices.
+- The story ending with the character alive and/or triumphant is possible, but very difficult.
+- Make sure it's not too violent. It should be more like a PG-13 rated movie than an R rated movie.
 `

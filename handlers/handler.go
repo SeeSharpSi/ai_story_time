@@ -233,7 +233,7 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(15)
 
 	pdf.SetFont("Helvetica", "I", 14)
-	pdf.Cell(0, 10, "An AI-generated story in the style of "+sess.CurrentAuthor)
+	pdf.Cell(0, 10, "An AI-generated story in the style of "+sess.CurrentAuthor+" set in a world of "+sess.CurrentGenre)
 	pdf.Ln(20)
 
 	pdf.SetFont("Helvetica", "", 12)

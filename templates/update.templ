@@ -41,9 +41,9 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 
 	if gameOver || gameWon {
 		<div id="response-form" hx-swap-oob="true">
-			if gameWon {
-				<div class="victory-message">Congratulations, you have won!</div>
-			}
+			// if gameWon {
+				// <div class="victory-message">Well done.</div>
+			// }
 			<button onclick="window.location.href='/download'" class="button">Download Story</button>
 			<button onclick="window.location.href='/'" class="button" style="margin-left: 10px;">Restart</button>
 		</div>

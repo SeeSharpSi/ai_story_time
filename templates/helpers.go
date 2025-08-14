@@ -37,9 +37,9 @@ func FormatProperties(props []string) string {
 
 // VignetteStyle generates a CSS style for the vignette effect based on world tension.
 func VignetteStyle(tension int) string {
-	opacity := float64(tension) / 200.0 // Scale opacity from 0.0 to 0.5
-	spread := tension / 2
-	blur := tension / 4
+	opacity := float64(tension) / 250.0 // Scale opacity from 0.0 to 0.4
+	spread := tension / 3
+	blur := tension / 2
 
 	style := fmt.Sprintf(`
 		<style>

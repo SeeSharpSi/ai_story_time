@@ -173,22 +173,12 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			return templ_7745c5c3_Err
 		}
 		if gameOver || gameWon {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"response-form\" hx-swap-oob=\"true\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			if gameWon {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"victory-message\">Congratulations, you have won!</div>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<button onclick=\"window.location.href='/download'\" class=\"button\">Download Story</button> <button onclick=\"window.location.href='/'\" class=\"button\" style=\"margin-left: 10px;\">Restart</button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"response-form\" hx-swap-oob=\"true\"><button onclick=\"window.location.href='/download'\" class=\"button\">Download Story</button> <button onclick=\"window.location.href='/'\" class=\"button\" style=\"margin-left: 10px;\">Restart</button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<div id=\"dynamic-styles-wrapper\" hx-swap-oob=\"true\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div id=\"dynamic-styles-wrapper\" hx-swap-oob=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -200,7 +190,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

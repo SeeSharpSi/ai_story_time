@@ -28,6 +28,7 @@ COPY --from=builder /app/server .
 # Copy static files and templates
 COPY static ./static
 COPY templates ./templates
+COPY data.db .
 
 # Expose the port the app runs on
 EXPOSE 9779

@@ -4,10 +4,11 @@ import "fmt"
 import "story_ai/story"
 import "strings"
 
-templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string) {
+templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string, worldTension int) {
 	<div id="story-container" class={ "theme-" + genre }>
 		<div id="dynamic-styles-wrapper">
 			@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
+			@templ.Raw(VignetteStyle(worldTension))
 		</div>
 
 		<div id="story-history">
@@ -35,7 +36,9 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 			<div class="inventory-items">
 				for i, item := range inventory {
 					<div class="inventory-item">
-						<span class="item-name">{ item.Name }</span>
+						<span class="item-name tooltip">{ item.Name }
+							<span class="tooltiptext">{ item.Description }</span>
+						</span>
 						<span class="item-properties">{ FormatProperties(item.Properties) }</span>
 					</div>
 					if i < len(inventory)-1 {

@@ -67,6 +67,7 @@ templ Index(title string) {
 					box-shadow: 0 4px 8px rgba(0,0,0,0.3); 
 					text-align: center; 
 					border: 1px solid #333333;
+					position: relative;
 				}
 				h1, h3 {
 					color: #ffffff;
@@ -253,6 +254,40 @@ templ Index(title string) {
 					height: 1px;
 					background-color: #444;
 					margin: 0;
+				}
+
+				/* Tooltip Styles */
+				.tooltip {
+					position: relative;
+					display: inline-block;
+					cursor: help;
+				}
+
+				.tooltip .tooltiptext {
+					visibility: hidden;
+					width: 160px;
+					background-color: #555;
+					color: #fff;
+					text-align: center;
+					border-radius: 6px;
+					padding: 5px;
+					position: absolute;
+					z-index: 1;
+					bottom: 125%;
+					left: 50%;
+					margin-left: -80px;
+					opacity: 0;
+					transition: opacity 0.3s;
+				}
+
+				.tooltip:hover .tooltiptext {
+					visibility: visible;
+					opacity: 1;
+				}
+
+				.proper-noun {
+					color: #e2c8b9;
+					cursor: help;
 				}
 			</style>
 		</head>

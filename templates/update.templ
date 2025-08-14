@@ -4,7 +4,7 @@ import "story_ai/story"
 import "fmt"
 import "strings"
 
-templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string) {
+templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string, worldTension int) {
 	<div id="player-status" hx-swap-oob="true">
 		<strong>Status:</strong>
 		<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
@@ -27,7 +27,9 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 		<div class="inventory-items">
 			for i, item := range inventory {
 				<div class="inventory-item">
-					<span class="item-name">{ item.Name }</span>
+					<span class="item-name tooltip">{ item.Name }
+						<span class="tooltiptext">{ item.Description }</span>
+					</span>
 					<span class="item-properties">{ FormatProperties(item.Properties) }</span>
 				</div>
 				if i < len(inventory)-1 {
@@ -49,5 +51,6 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 
 	<div id="dynamic-styles-wrapper" hx-swap-oob="true">
 		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
+		@templ.Raw(VignetteStyle(worldTension))
 	</div>
 }

@@ -4,7 +4,7 @@ import "story_ai/story"
 import "fmt"
 import "strings"
 
-templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, currentGenre string, consequenceModel string) {
+templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string, worldTension int) {
 	<div id="player-status" hx-swap-oob="true">
 		<strong>Status:</strong>
 		<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
@@ -24,27 +24,33 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 
 	<div id="inventory" hx-swap-oob="true">
 		<h3>Inventory</h3>
-		<ul>
-			for _, item := range inventory {
-				<li>
-					<div class="tooltip">{ item.Name }
-						<span class="tooltiptext">{ FormatProperties(item.Properties) }</span>
-					</div>
-				</li>
+		<div class="inventory-items">
+			for i, item := range inventory {
+				<div class="inventory-item">
+					<span class="item-name tooltip">{ item.Name }
+						<span class="tooltiptext">{ item.Description }</span>
+					</span>
+					<span class="item-properties">{ FormatProperties(item.Properties) }</span>
+				</div>
+				if i < len(inventory)-1 {
+					<hr class="inventory-divider"/>
+				}
 			}
-		</ul>
+		</div>
 	</div>
 
-	if gameOver {
+	if gameOver || gameWon {
 		<div id="response-form" hx-swap-oob="true">
+			if gameWon {
+				<div class="victory-message">Congratulations, you have won!</div>
+			}
 			<button onclick="window.location.href='/download'" class="button">Download Story</button>
-			<form hx-post={ fmt.Sprintf("/start?genre=%s&consequence_model=%s", currentGenre, consequenceModel) } hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner" style="margin-left: 10px;">
-				<button type="submit">Restart</button>
-			</form>
+			<button onclick="window.location.href='/'" class="button" style="margin-left: 10px;">Restart</button>
 		</div>
 	}
 
 	<div id="dynamic-styles-wrapper" hx-swap-oob="true">
 		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
+		@templ.Raw(VignetteStyle(worldTension))
 	</div>
 }

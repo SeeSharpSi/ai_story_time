@@ -4,10 +4,11 @@ import "fmt"
 import "story_ai/story"
 import "strings"
 
-templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string) {
+templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string, worldTension int) {
 	<div id="story-container" class={ "theme-" + genre }>
 		<div id="dynamic-styles-wrapper">
 			@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
+			@templ.Raw(VignetteStyle(worldTension))
 		</div>
 
 		<div id="story-history">
@@ -32,16 +33,40 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 
 		<div id="inventory">
 			<h3>Inventory</h3>
-			<ul>
-				for _, item := range inventory {
-					<li>
-						<div class="tooltip">{ item.Name }
-							<span class="tooltiptext">{ FormatProperties(item.Properties) }</span>
-						</div>
-					</li>
+			<div class="inventory-items">
+				for i, item := range inventory {
+					<div class="inventory-item">
+						<span class="item-name tooltip">{ item.Name }
+							<span class="tooltiptext">{ item.Description }</span>
+						</span>
+						<span class="item-properties">{ FormatProperties(item.Properties) }</span>
+					</div>
+					if i < len(inventory)-1 {
+						<hr class="inventory-divider"/>
+					}
 				}
-			</ul>
+			</div>
 		</div>
+
+		<style>
+			.inventory-item {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 8px 0;
+			}
+			.item-properties {
+				font-style: italic;
+				color: #888; /* Faint color */
+                text-align: right;
+			}
+			.inventory-divider {
+				border: 0;
+				height: 1px;
+				background-color: #444;
+				margin: 0;
+			}
+		</style>
 
 		<script>
 			const promptInput = document.getElementById('prompt');

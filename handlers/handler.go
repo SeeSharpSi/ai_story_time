@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,6 +20,7 @@ import (
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/jung-kurt/gofpdf"
+	_ "modernc.org/sqlite"
 )
 
 type Handler struct {
@@ -46,11 +50,21 @@ type AIRequest struct {
 }
 
 var (
-	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "H.P. Lovecraft", "Edgar Allan Poe", "J.R.R. Tolkien", "Other"}
+	authors = []string{"James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "H.P. Lovecraft", "Edgar Allan Poe", "J.R.R. Tolkien", "Terry Pratchett", "Other"}
 	// Regex to find Markdown bolding (**text**)
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
 	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
+	// Regex to find the body content
+	bodyRegex = regexp.MustCompile(`(?is)<body.*?>(.*?)<\/body>`)
+	// Regex to remove script and style blocks
+	scriptRegex = regexp.MustCompile(`(?is)<script.*?>.*?</script>`)
+	styleRegex  = regexp.MustCompile(`(?is)<style.*?>.*?</style>`)
+	// Regex to remove any remaining HTML tags
+	htmlRegex = regexp.MustCompile(`<[^>]*>`)
+	// Regex to consolidate whitespace
+	whitespaceRegex = regexp.MustCompile(`\s+
+`)
 )
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
@@ -70,6 +84,37 @@ func parseAIResponse(response string) (AIResponse, error) {
 	return aiResp, nil
 }
 
+func (h *Handler) parseAndRetryAIResponse(ctx context.Context, originalResponse string) (AIResponse, error) {
+	aiResp, err := parseAIResponse(originalResponse)
+	if err == nil {
+		return aiResp, nil
+	}
+
+	log.Printf("Initial JSON parsing failed: %v. Retrying with the AI.", err)
+
+	for i := 0; i < 3; i++ { // Retry up to 3 times
+		retryPrompt := fmt.Sprintf(prompts.JsonRetryPrompt, originalResponse)
+		resp, retryErr := h.Model.GenerateContent(ctx, genai.Text(retryPrompt))
+		if retryErr != nil {
+			log.Printf("AI retry attempt %d failed: %v", i+1, retryErr)
+			continue
+		}
+
+		if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+			correctedResponse := string(resp.Candidates[0].Content.Parts[0].(genai.Text))
+			aiResp, err = parseAIResponse(correctedResponse)
+			if err == nil {
+				log.Printf("AI successfully corrected the JSON on attempt %d.", i+1)
+				return aiResp, nil
+			}
+			log.Printf("AI retry attempt %d still resulted in invalid JSON: %v", i+1, err)
+			originalResponse = correctedResponse // Use the corrected (but still invalid) response for the next retry
+		}
+	}
+
+	return AIResponse{}, fmt.Errorf("failed to parse AI response after multiple retries")
+}
+
 func prettyPrint(v interface{}) string {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -77,6 +122,48 @@ func prettyPrint(v interface{}) string {
 	}
 	return string(b)
 }
+
+func fetchURLContent(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to get URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Default to the full body if we can't find a body tag
+	pageContent := string(body)
+	bodyMatch := bodyRegex.FindStringSubmatch(pageContent)
+	if len(bodyMatch) >= 2 {
+		pageContent = bodyMatch[1]
+	}
+
+	// Remove script and style blocks
+	pageContent = scriptRegex.ReplaceAllString(pageContent, "")
+	pageContent = styleRegex.ReplaceAllString(pageContent, "")
+
+	// Strip all other HTML tags
+	pageContent = htmlRegex.ReplaceAllString(pageContent, " ")
+
+	// Decode HTML entities
+	pageContent = html.UnescapeString(pageContent)
+
+	// Consolidate whitespace and trim
+	pageContent = whitespaceRegex.ReplaceAllString(pageContent, " ")
+	pageContent = strings.TrimSpace(pageContent)
+
+	return pageContent, nil
+}
+
+
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess, cookie := h.Manager.GetOrCreateSession(r)
@@ -93,7 +180,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	author := authors[rand.Intn(len(authors))]
 
 	if author == "Other" {
-		authorPrompt := "Name one famous author who is not on this list: William Faulkner, James Joyce, Mark Twain, Jack Kerouac, Kurt Vonnegut. Respond with only the author's name."
+		authorPrompt := "Name one famous author who is not on this list: William Faulkner, James Joyce, Mark Twain, Jack Kerouac, Kurt Vonnegut, H.P. Lovecraft, Edgar Allan Poe, J.R.R. Tolkien, Douglas Adams, Terry Pratchett. Respond with only the author's name."
 		resp, err := h.Model.GenerateContent(context.Background(), genai.Text(authorPrompt))
 		if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 			author = "Mark Twain"
@@ -109,13 +196,80 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	switch genre {
 	case "fantasy":
+		db, err := sql.Open("sqlite", "./data.db")
+		if err != nil {
+			print(err.Error())
+			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			return
+		}
+		defer db.Close()
+
+		var title, description string
+		err = db.QueryRow("SELECT title, description FROM fantasy_inspo ORDER BY RANDOM() LIMIT 1").Scan(&title, &description)
+		if err != nil {
+			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
+			return
+		}
+
 		prompt += prompts.FantasyPrompt
+		prompt += fmt.Sprintf("\n- You MUST use the following title and description as inspiration for the story:\n- Title: %s\n- Description: %s\n", title, description)
 		sess.CurrentGenre = "fantasy"
 	case "sci-fi":
+		db, err := sql.Open("sqlite", "./data.db")
+		if err != nil {
+			print(err.Error())
+			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			return
+		}
+		defer db.Close()
+
+		var title, description string
+		err = db.QueryRow("SELECT title, description FROM scifi_inspo ORDER BY RANDOM() LIMIT 1").Scan(&title, &description)
+		if err != nil {
+			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
+			return
+		}
+
 		prompt += prompts.SciFiPrompt
+		prompt += fmt.Sprintf("\n- You MUST use the following title and description as inspiration for the story:\n- Title: %s\n- Description: %s\n", title, description)
 		sess.CurrentGenre = "sci-fi"
 	case "historical-fiction":
-		prompt += prompts.HistoricalFictionPrompt
+		db, err := sql.Open("sqlite", "./data.db")
+		if err != nil {
+			print(err.Error())
+			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			return
+		}
+		defer db.Close()
+
+		var event, description, wikipediaURL string
+		err = db.QueryRow("SELECT event, description, wikipedia FROM historical_events ORDER BY RANDOM() LIMIT 1").Scan(&event, &description, &wikipediaURL)
+		if err != nil {
+			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
+			return
+		}
+
+		// Use the AI to summarize the Wikipedia article for context
+		wikiContent, err := fetchURLContent(wikipediaURL)
+		if err != nil {
+			http.Error(w, "Failed to fetch Wikipedia content.", http.StatusInternalServerError)
+			return
+		}
+
+		sess.HistoricalEvent = event
+		sess.HistoricalDesc = description
+		sess.HistoricalURL = wikipediaURL
+
+		wikiPrompt := fmt.Sprintf("Please read the following text and provide a concise summary of the key events, people, and atmosphere. This will be used as context for a historical fiction story. Article content: %s", wikiContent)
+		resp, err := h.Model.GenerateContent(context.Background(), genai.Text(wikiPrompt))
+		if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+			http.Error(w, "Failed to get historical context from Wikipedia.", http.StatusInternalServerError)
+			return
+		}
+		wikiSummary := string(resp.Candidates[0].Content.Parts[0].(genai.Text))
+
+		prompt += fmt.Sprintf(prompts.HistoricalFictionPrompt, event, description, wikiSummary)
+		log.Printf("--- HISTORICAL EVENT --- Event: %s, Description: %s", event, description)
 		sess.CurrentGenre = "historical-fiction"
 	default:
 		prompt += prompts.FantasyPrompt
@@ -124,7 +278,11 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// The initial game state is empty, the AI will generate the starting scenario.
 	initialRequest := AIRequest{
-		GameState:  &story.GameState{Rules: story.Rules{ConsequenceModel: consequenceModel}},
+		GameState: &story.GameState{
+			Rules:  story.Rules{ConsequenceModel: consequenceModel},
+			World:  story.World{WorldTension: 0},
+			Climax: false,
+		},
 		UserAction: "Start the game.",
 	}
 	reqBytes, err := json.Marshal(initialRequest)
@@ -141,7 +299,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	aiResp, err := parseAIResponse(string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
+	aiResp, err := h.parseAndRetryAIResponse(context.Background(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to parse AI's initial response: %v", err), http.StatusInternalServerError)
 		return
@@ -156,7 +314,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.GameState = aiResp.NewGameState
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.StoryUpdate.Story}}
 
-	templates.StoryView(aiResp.StoryUpdate.Story, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre).Render(context.Background(), w)
+	templates.StoryView(aiResp.StoryUpdate.Story, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -205,15 +363,15 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: userAction, Response: "[The AI's response was blocked. Try something else.]"}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 		return
 	}
 
-	aiResp, err := parseAIResponse(string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
+	aiResp, err := h.parseAndRetryAIResponse(r.Context(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
 		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 		return
 	}
 
@@ -225,7 +383,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	sess.GameState = aiResp.NewGameState
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: aiResp.StoryUpdate.Story})
-	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel).Render(context.Background(), w)
+	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 }
 
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
@@ -243,7 +401,16 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		sess.GameState.Rules.ConsequenceModel,
 	)
 	pdf.Cell(0, 10, subtitle)
-	pdf.Ln(20)
+	pdf.Ln(15)
+
+	if sess.CurrentGenre == "historical-fiction" {
+		pdf.SetFont("Helvetica", "B", 12)
+		pdf.Cell(0, 10, "Historical Context")
+		pdf.Ln(8)
+		pdf.SetFont("Helvetica", "", 12)
+		pdf.MultiCell(0, 5, fmt.Sprintf("Event: %s\nDescription: %s\nLink: %s", sess.HistoricalEvent, sess.HistoricalDesc, sess.HistoricalURL), "", "", false)
+		pdf.Ln(10)
+	}
 
 	pdf.SetFont("Helvetica", "", 12)
 	for _, page := range sess.StoryHistory {

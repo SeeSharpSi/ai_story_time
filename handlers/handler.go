@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,6 +20,7 @@ import (
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/jung-kurt/gofpdf"
+	_ "modernc.org/sqlite"
 )
 
 type Handler struct {
@@ -51,6 +55,15 @@ var (
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
 	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
+	// Regex to find the body content
+	bodyRegex = regexp.MustCompile(`(?is)<body.*?>(.*?)<\/body>`)
+	// Regex to remove script and style blocks
+	scriptRegex = regexp.MustCompile(`(?is)<script.*?>.*?</script>`)
+	styleRegex  = regexp.MustCompile(`(?is)<style.*?>.*?</style>`)
+	// Regex to remove any remaining HTML tags
+	htmlRegex = regexp.MustCompile(`<[^>]*>`)
+	// Regex to consolidate whitespace
+	whitespaceRegex = regexp.MustCompile(`\s+`)
 )
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
@@ -77,6 +90,48 @@ func prettyPrint(v interface{}) string {
 	}
 	return string(b)
 }
+
+func fetchURLContent(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to get URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Default to the full body if we can't find a body tag
+	pageContent := string(body)
+	bodyMatch := bodyRegex.FindStringSubmatch(pageContent)
+	if len(bodyMatch) >= 2 {
+		pageContent = bodyMatch[1]
+	}
+
+	// Remove script and style blocks
+	pageContent = scriptRegex.ReplaceAllString(pageContent, "")
+	pageContent = styleRegex.ReplaceAllString(pageContent, "")
+
+	// Strip all other HTML tags
+	pageContent = htmlRegex.ReplaceAllString(pageContent, " ")
+
+	// Decode HTML entities
+	pageContent = html.UnescapeString(pageContent)
+
+	// Consolidate whitespace and trim
+	pageContent = whitespaceRegex.ReplaceAllString(pageContent, " ")
+	pageContent = strings.TrimSpace(pageContent)
+
+	return pageContent, nil
+}
+
+
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess, cookie := h.Manager.GetOrCreateSession(r)
@@ -115,7 +170,38 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		prompt += prompts.SciFiPrompt
 		sess.CurrentGenre = "sci-fi"
 	case "historical-fiction":
-		prompt += prompts.HistoricalFictionPrompt
+		db, err := sql.Open("sqlite", "./data.db")
+		if err != nil {
+			print(err.Error())
+			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			return
+		}
+		defer db.Close()
+
+		var event, description, wikipediaURL string
+		err = db.QueryRow("SELECT event, description, wikipedia FROM historical_events ORDER BY RANDOM() LIMIT 1").Scan(&event, &description, &wikipediaURL)
+		if err != nil {
+			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
+			return
+		}
+
+		// Use the AI to summarize the Wikipedia article for context
+		wikiContent, err := fetchURLContent(wikipediaURL)
+		if err != nil {
+			http.Error(w, "Failed to fetch Wikipedia content.", http.StatusInternalServerError)
+			return
+		}
+
+		wikiPrompt := fmt.Sprintf("Please read the following text and provide a concise summary of the key events, people, and atmosphere. This will be used as context for a historical fiction story. Article content: %s", wikiContent)
+		resp, err := h.Model.GenerateContent(context.Background(), genai.Text(wikiPrompt))
+		if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+			http.Error(w, "Failed to get historical context from Wikipedia.", http.StatusInternalServerError)
+			return
+		}
+		wikiSummary := string(resp.Candidates[0].Content.Parts[0].(genai.Text))
+
+		prompt += fmt.Sprintf(prompts.HistoricalFictionPrompt, event, description, wikiSummary)
+		log.Printf("--- HISTORICAL EVENT --- Event: %s, Description: %s", event, description)
 		sess.CurrentGenre = "historical-fiction"
 	default:
 		prompt += prompts.FantasyPrompt
@@ -124,7 +210,11 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// The initial game state is empty, the AI will generate the starting scenario.
 	initialRequest := AIRequest{
-		GameState:  &story.GameState{Rules: story.Rules{ConsequenceModel: consequenceModel}},
+		GameState: &story.GameState{
+			Rules:  story.Rules{ConsequenceModel: consequenceModel},
+			World:  story.World{WorldTension: 0},
+			Climax: false,
+		},
 		UserAction: "Start the game.",
 	}
 	reqBytes, err := json.Marshal(initialRequest)

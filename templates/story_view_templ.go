@@ -116,43 +116,49 @@ func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory [
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" autocomplete=\"off\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" autocomplete=\"off\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><div class=\"inventory-items\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, item := range inventory {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<li><div class=\"tooltip\">")
+		for i, item := range inventory {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"inventory-item\"><span class=\"item-name\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(item.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 38, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 38, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " <span class=\"tooltiptext\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span> <span class=\"item-properties\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(FormatProperties(item.Properties))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 39, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 39, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span></div></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			if i < len(inventory)-1 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<hr class=\"inventory-divider\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</ul></div><script>\n\t\t\tconst promptInput = document.getElementById('prompt');\n\t\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\t\tconst responseForm = document.getElementById('response-form');\n\n\t\t\tpromptInput.addEventListener('input', () => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tlet wordCount = words.length;\n\t\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\t\twordCount = 0;\n\t\t\t\t}\n\t\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\t\tif (wordCount > 15) {\n\t\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t\t} else {\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tif (words.length > 15) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t\tif (evt.detail.successful) {\n\t\t\t\t\tpromptInput.value = '';\n\t\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div></div><style>\n\t\t\t.inventory-item {\n\t\t\t\tdisplay: flex;\n\t\t\t\tjustify-content: space-between;\n\t\t\t\talign-items: center;\n\t\t\t\tpadding: 8px 0;\n\t\t\t}\n\t\t\t.item-properties {\n\t\t\t\tfont-style: italic;\n\t\t\t\tcolor: #888; /* Faint color */\n                text-align: right;\n\t\t\t}\n\t\t\t.inventory-divider {\n\t\t\t\tborder: 0;\n\t\t\t\theight: 1px;\n\t\t\t\tbackground-color: #444;\n\t\t\t\tmargin: 0;\n\t\t\t}\n\t\t</style><script>\n\t\t\tconst promptInput = document.getElementById('prompt');\n\t\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\t\tconst responseForm = document.getElementById('response-form');\n\n\t\t\tpromptInput.addEventListener('input', () => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tlet wordCount = words.length;\n\t\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\t\twordCount = 0;\n\t\t\t\t}\n\t\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\t\tif (wordCount > 15) {\n\t\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t\t} else {\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tif (words.length > 15) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t\tif (evt.detail.successful) {\n\t\t\t\t\tpromptInput.value = '';\n\t\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

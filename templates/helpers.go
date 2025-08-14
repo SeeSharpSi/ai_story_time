@@ -1,6 +1,6 @@
 package templates
 
-import "fmt"
+import "strings"
 
 // HealthStatus represents the player's health state and its corresponding color.
 type HealthStatus struct {
@@ -27,7 +27,7 @@ func GetHealthStatus(health int) HealthStatus {
 // FormatProperties creates a string from a slice of item properties.
 func FormatProperties(props []string) string {
 	if len(props) == 0 {
-		return "No special properties."
+		return ""
 	}
-	return fmt.Sprintf("Properties: %s", props)
+	return strings.Join(props, ", ")
 }

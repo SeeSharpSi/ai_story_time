@@ -2,14 +2,16 @@ package story
 
 // GameState represents the entire state of the game world.
 type GameState struct {
-	PlayerStatus PlayerStatus `json:"player_status"`
-	Inventory    []Item       `json:"inventory"`
-	Environment  Environment  `json:"environment"`
-	World        World        `json:"world"`
-	NPCs         []NPC        `json:"npcs"`
-	Puzzles      []Puzzle     `json:"active_puzzles_and_obstacles"`
-	Rules        Rules        `json:"rules"`
-	Climax       bool         `json:"climax"`
+	PlayerStatus  PlayerStatus `json:"player_status"`
+	Inventory     []Item       `json:"inventory"`
+	Environment   Environment  `json:"environment"`
+	World         World        `json:"world"`
+	NPCs          []NPC        `json:"npcs"`
+	Puzzles       []Puzzle     `json:"active_puzzles_and_obstacles"`
+	Rules         Rules        `json:"rules"`
+	Climax        bool         `json:"climax"`
+	WinConditions []string     `json:"win_conditions,omitempty"`
+	GameWon       bool         `json:"game_won"`
 }
 
 // PlayerStatus tracks the player's condition.

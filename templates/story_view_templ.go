@@ -9,8 +9,10 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import "fmt"
+import "story_ai/story"
+import "strings"
 
-func StoryView(initialStory string, inventory []string, bgColor string) templ.Component {
+func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,7 +33,25 @@ func StoryView(initialStory string, inventory []string, bgColor string) templ.Co
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"dynamic-styles-wrapper\">")
+		var templ_7745c5c3_Var2 = []any{"theme-" + genre}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"story-container\" class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var2).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div id=\"dynamic-styles-wrapper\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -39,7 +59,7 @@ func StoryView(initialStory string, inventory []string, bgColor string) templ.Co
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div id=\"story-history\"><div class=\"story-page\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><div id=\"story-history\"><div class=\"story-page\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -47,30 +67,92 @@ func StoryView(initialStory string, inventory []string, bgColor string) templ.Co
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" autocomplete=\"off\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div><div id=\"player-status\"><strong>Status:</strong> <span style=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 string
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 21, Col: 86}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(GetHealthStatus(playerStatus.Health).Description)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 21, Col: 139}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span> ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if len(playerStatus.Conditions) > 0 {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span>| </span><span class=\"condition\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var6 string
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(playerStatus.Conditions, ", "))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 23, Col: 89}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><form id=\"response-form\" hx-post=\"/generate\" hx-target=\"body\" hx-swap=\"none\" hx-indicator=\"#spinner\"><input type=\"text\" id=\"prompt\" name=\"prompt\" autofocus=\"autofocus\" autocomplete=\"off\" placeholder=\"What do you do?\"> <button type=\"submit\">Send</button> <span id=\"word-count\">0/15 words</span></form><div id=\"inventory\"><h3>Inventory</h3><ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, item := range inventory {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<li><div class=\"tooltip\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(item)
+			var templ_7745c5c3_Var7 string
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(item.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 26, Col: 14}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 38, Col: 38}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " <span class=\"tooltiptext\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var8 string
+			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(FormatProperties(item.Properties))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 39, Col: 68}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span></div></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ul></div><script>\n\t\tconst promptInput = document.getElementById('prompt');\n\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\tconst responseForm = document.getElementById('response-form');\n\n\t\tpromptInput.addEventListener('input', () => {\n\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\tlet wordCount = words.length;\n\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\twordCount = 0;\n\t\t\t}\n\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\tif (wordCount > 15) {\n\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t} else {\n\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t}\n\t\t});\n\n\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\tif (words.length > 15) {\n\t\t\t\te.preventDefault();\n\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t}\n\t\t});\n\n\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\tif (evt.detail.successful) {\n\t\t\t\tpromptInput.value = '';\n\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t}\n\t\t});\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</ul></div><script>\n\t\t\tconst promptInput = document.getElementById('prompt');\n\t\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\t\tconst responseForm = document.getElementById('response-form');\n\n\t\t\tpromptInput.addEventListener('input', () => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tlet wordCount = words.length;\n\t\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\t\twordCount = 0;\n\t\t\t\t}\n\t\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\t\tif (wordCount > 15) {\n\t\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t\t} else {\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tif (words.length > 15) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t\tif (evt.detail.successful) {\n\t\t\t\t\tpromptInput.value = '';\n\t\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

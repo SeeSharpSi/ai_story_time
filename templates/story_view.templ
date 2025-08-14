@@ -1,66 +1,82 @@
 package templates
 
 import "fmt"
+import "story_ai/story"
+import "strings"
 
-templ StoryView(initialStory string, inventory []string, bgColor string) {
-	<div id="dynamic-styles-wrapper">
-		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
-	</div>
-
-	<div id="story-history">
-		<div class="story-page">
-			@templ.Raw(initialStory)
+templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string) {
+	<div id="story-container" class={ "theme-" + genre }>
+		<div id="dynamic-styles-wrapper">
+			@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
 		</div>
+
+		<div id="story-history">
+			<div class="story-page">
+				@templ.Raw(initialStory)
+			</div>
+		</div>
+
+		<div id="player-status">
+			<strong>Status:</strong>
+			<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
+			if len(playerStatus.Conditions) > 0 {
+				<span> | </span><span class="condition">{ strings.Join(playerStatus.Conditions, ", ") }</span>
+			}
+		</div>
+
+		<form id="response-form" hx-post="/generate" hx-target="body" hx-swap="none" hx-indicator="#spinner">
+			<input type="text" id="prompt" name="prompt" autofocus="autofocus" autocomplete="off" placeholder="What do you do?"/>
+			<button type="submit">Send</button>
+			<span id="word-count">0/15 words</span>
+		</form>
+
+		<div id="inventory">
+			<h3>Inventory</h3>
+			<ul>
+				for _, item := range inventory {
+					<li>
+						<div class="tooltip">{ item.Name }
+							<span class="tooltiptext">{ FormatProperties(item.Properties) }</span>
+						</div>
+					</li>
+				}
+			</ul>
+		</div>
+
+		<script>
+			const promptInput = document.getElementById('prompt');
+			const wordCountSpan = document.getElementById('word-count');
+			const responseForm = document.getElementById('response-form');
+
+			promptInput.addEventListener('input', () => {
+				const words = promptInput.value.trim().split(/\s+/).filter(Boolean);
+				let wordCount = words.length;
+				if (promptInput.value.trim() === "") {
+					wordCount = 0;
+				}
+				wordCountSpan.textContent = `${wordCount}/15 words`;
+				if (wordCount > 15) {
+					wordCountSpan.style.color = 'red';
+				} else {
+					wordCountSpan.style.color = '#666';
+				}
+			});
+
+			responseForm.addEventListener('submit', (e) => {
+				const words = promptInput.value.trim().split(/\s+/).filter(Boolean);
+				if (words.length > 15) {
+					e.preventDefault();
+					alert('Your response cannot be more than 15 words.');
+				}
+			});
+
+			responseForm.addEventListener('htmx:afterRequest', function(evt) {
+				if (evt.detail.successful) {
+					promptInput.value = '';
+					wordCountSpan.textContent = '0/15 words';
+					wordCountSpan.style.color = '#666';
+				}
+			});
+		</script>
 	</div>
-
-	<form id="response-form" hx-post="/generate" hx-target="body" hx-swap="none" hx-indicator="#spinner">
-		<input type="text" id="prompt" name="prompt" autofocus="autofocus" autocomplete="off" placeholder="What do you do?"/>
-		<button type="submit">Send</button>
-		<span id="word-count">0/15 words</span>
-	</form>
-
-	<div id="inventory">
-		<h3>Inventory</h3>
-		<ul>
-			for _, item := range inventory {
-				<li>{ item }</li>
-			}
-		</ul>
-	</div>
-
-	<script>
-		const promptInput = document.getElementById('prompt');
-		const wordCountSpan = document.getElementById('word-count');
-		const responseForm = document.getElementById('response-form');
-
-		promptInput.addEventListener('input', () => {
-			const words = promptInput.value.trim().split(/\s+/).filter(Boolean);
-			let wordCount = words.length;
-			if (promptInput.value.trim() === "") {
-				wordCount = 0;
-			}
-			wordCountSpan.textContent = `${wordCount}/15 words`;
-			if (wordCount > 15) {
-				wordCountSpan.style.color = 'red';
-			} else {
-				wordCountSpan.style.color = '#666';
-			}
-		});
-
-		responseForm.addEventListener('submit', (e) => {
-			const words = promptInput.value.trim().split(/\s+/).filter(Boolean);
-			if (words.length > 15) {
-				e.preventDefault();
-				alert('Your response cannot be more than 15 words.');
-			}
-		});
-
-		responseForm.addEventListener('htmx:afterRequest', function(evt) {
-			if (evt.detail.successful) {
-				promptInput.value = '';
-				wordCountSpan.textContent = '0/15 words';
-				wordCountSpan.style.color = '#666';
-			}
-		});
-	</script>
 }

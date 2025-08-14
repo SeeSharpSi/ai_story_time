@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"regexp"
@@ -23,17 +24,29 @@ type Handler struct {
 	Manager *session.Manager
 }
 
-// AIResponse matches the JSON structure we expect from the AI.
+// AIResponse is the top-level structure for the AI's JSON response.
 type AIResponse struct {
+	NewGameState *story.GameState `json:"new_game_state"`
+	StoryUpdate  StoryUpdate      `json:"story_update"`
+}
+
+// StoryUpdate contains the narrative portion of the AI's response.
+type StoryUpdate struct {
 	Story           string   `json:"story"`
-	Items           []string `json:"items"`
+	ItemsAdded      []string `json:"items_added"`
 	ItemsRemoved    []string `json:"items_removed"`
 	GameOver        bool     `json:"game_over"`
 	BackgroundColor string   `json:"background_color"`
 }
 
+// AIRequest is the structure sent to the AI.
+type AIRequest struct {
+	GameState  *story.GameState `json:"game_state"`
+	UserAction string           `json:"user_action"`
+}
+
 var (
-	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "Other"}
+	authors = []string{"William Faulkner", "James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "H.P. Lovecraft", "Edgar Allan Poe", "J.R.R. Tolkien", "Other"}
 	// Regex to find Markdown bolding (**text**)
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
@@ -51,10 +64,18 @@ func parseAIResponse(response string) (AIResponse, error) {
 		return aiResp, err
 	}
 
-	aiResp.Story = markdownBoldRegex.ReplaceAllString(aiResp.Story, "<strong>$1</strong>")
-	aiResp.Story = markdownItalicRegex.ReplaceAllString(aiResp.Story, "<em>$1</em>")
+	aiResp.StoryUpdate.Story = markdownBoldRegex.ReplaceAllString(aiResp.StoryUpdate.Story, "<strong>$1</strong>")
+	aiResp.StoryUpdate.Story = markdownItalicRegex.ReplaceAllString(aiResp.StoryUpdate.Story, "<em>$1</em>")
 
 	return aiResp, nil
+}
+
+func prettyPrint(v interface{}) string {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error pretty printing: %v", err)
+	}
+	return string(b)
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
@@ -62,8 +83,11 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	genre := r.URL.Query().Get("genre")
-	survive := r.URL.Query().Get("survive") == "true"
-	sess.SurviveMode = survive
+	consequenceModel := r.URL.Query().Get("consequence_model")
+	sess.GameState.Rules.ConsequenceModel = consequenceModel
+
+	// Reset story history for a new game
+	sess.StoryHistory = []story.StoryPage{}
 
 	rand.Seed(time.Now().UnixNano())
 	author := authors[rand.Intn(len(authors))]
@@ -78,14 +102,10 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sess.CurrentAuthor = author
+	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
 
 	var prompt string
-
 	prompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
-
-	if sess.SurviveMode {
-		prompt += prompts.SurvivePrompt
-	}
 
 	switch genre {
 	case "fantasy":
@@ -102,7 +122,20 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		sess.CurrentGenre = "fantasy"
 	}
 
-	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(prompt))
+	// The initial game state is empty, the AI will generate the starting scenario.
+	initialRequest := AIRequest{
+		GameState:  &story.GameState{Rules: story.Rules{ConsequenceModel: consequenceModel}},
+		UserAction: "Start the game.",
+	}
+	reqBytes, err := json.Marshal(initialRequest)
+	if err != nil {
+		http.Error(w, "Failed to create initial AI request.", http.StatusInternalServerError)
+		return
+	}
+
+	fullPrompt := prompt + string(reqBytes)
+
+	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		http.Error(w, "The AI failed to start the story. Please try again.", http.StatusInternalServerError)
 		return
@@ -114,104 +147,85 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if aiResp.BackgroundColor == "" {
-		aiResp.BackgroundColor = "#1e1e1e"
+	log.Printf("--- NEW GAME STATE (START) --- %s", prettyPrint(aiResp.NewGameState))
+
+	if aiResp.StoryUpdate.BackgroundColor == "" {
+		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
-	sess.Inventory = aiResp.Items
-	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.Story}}
+	sess.GameState = aiResp.NewGameState
+	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.StoryUpdate.Story}}
 
-	templates.StoryView(aiResp.Story, sess.Inventory, aiResp.BackgroundColor).Render(context.Background(), w)
+	templates.StoryView(aiResp.StoryUpdate.Story, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
-	prompt := r.FormValue("prompt")
+	userAction := r.FormValue("prompt")
 
-	if strings.ToLower(strings.TrimSpace(prompt)) == "restart" {
-		query := "genre=" + sess.CurrentGenre
-		if sess.SurviveMode {
-			query += "&survive=true"
-		}
+	if strings.ToLower(strings.TrimSpace(userAction)) == "restart" {
+		query := "genre=" + sess.CurrentGenre + "&consequence_model=" + sess.GameState.Rules.ConsequenceModel
 		r.URL.RawQuery = query
 		h.StartStory(w, r)
 		return
 	}
 
-	if len(strings.Fields(prompt)) > 15 {
+	if len(strings.Fields(userAction)) > 15 {
 		http.Error(w, "Response must be 15 words or less.", http.StatusBadRequest)
 		return
 	}
 
 	var systemPrompt string
-
 	systemPrompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
-
-	if sess.SurviveMode {
-		systemPrompt += prompts.SurvivePrompt
-	}
 
 	switch sess.CurrentGenre {
 	case "fantasy":
 		systemPrompt += prompts.FantasyPrompt
-		sess.CurrentGenre = "fantasy"
 	case "sci-fi":
 		systemPrompt += prompts.SciFiPrompt
-		sess.CurrentGenre = "sci-fi"
 	case "historical-fiction":
 		systemPrompt += prompts.HistoricalFictionPrompt
-		sess.CurrentGenre = "historical-fiction"
 	default:
 		systemPrompt += prompts.FantasyPrompt
-		sess.CurrentGenre = "fantasy"
 	}
 
-	var historyBuilder strings.Builder
-	historyBuilder.WriteString(systemPrompt)
-	for _, page := range sess.StoryHistory {
-		historyBuilder.WriteString(fmt.Sprintf("%s\n%s\n", page.Prompt, page.Response))
+	aiRequest := AIRequest{
+		GameState:  sess.GameState,
+		UserAction: userAction,
 	}
-	historyBuilder.WriteString(fmt.Sprintf("%s\n", prompt))
-	fullStory := historyBuilder.String()
+	reqBytes, err := json.Marshal(aiRequest)
+	if err != nil {
+		http.Error(w, "Failed to create AI request.", http.StatusInternalServerError)
+		return
+	}
 
-	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullStory))
+	fullPrompt := systemPrompt + string(reqBytes)
+
+	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		errorPage := story.StoryPage{Prompt: prompt, Response: "[The AI's response was blocked. Try something else.]"}
+		errorPage := story.StoryPage{Prompt: userAction, Response: "[The AI's response was blocked. Try something else.]"}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.SurviveMode).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel).Render(context.Background(), w)
 		return
 	}
 
 	aiResp, err := parseAIResponse(string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		errorPage := story.StoryPage{Prompt: prompt, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
+		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.SurviveMode).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel).Render(context.Background(), w)
 		return
 	}
 
-	if aiResp.BackgroundColor == "" {
-		aiResp.BackgroundColor = "#1e1e1e"
+	log.Printf("--- NEW GAME STATE (GENERATE) --- %s", prettyPrint(aiResp.NewGameState))
+
+	if aiResp.StoryUpdate.BackgroundColor == "" {
+		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
-	if !aiResp.GameOver {
-		itemsToRemove := make(map[string]bool)
-		for _, item := range aiResp.ItemsRemoved {
-			itemsToRemove[item] = true
-		}
-
-		var newInventory []string
-		for _, item := range sess.Inventory {
-			if !itemsToRemove[item] {
-				newInventory = append(newInventory, item)
-			}
-		}
-		sess.Inventory = newInventory
-		sess.Inventory = append(sess.Inventory, aiResp.Items...)
-	}
-
-	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: prompt, Response: aiResp.Story})
-	templates.Update(sess.StoryHistory, sess.Inventory, aiResp.BackgroundColor, aiResp.GameOver, sess.CurrentGenre, sess.SurviveMode).Render(context.Background(), w)
+	sess.GameState = aiResp.NewGameState
+	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: aiResp.StoryUpdate.Story})
+	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel).Render(context.Background(), w)
 }
 
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +237,12 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(15)
 
 	pdf.SetFont("Helvetica", "I", 14)
-	pdf.Cell(0, 10, "An AI-generated story in the style of "+sess.CurrentAuthor+" set in a world of "+sess.CurrentGenre)
+	subtitle := fmt.Sprintf("An AI-generated %s story in the style of %s (Difficulty: %s)",
+		sess.CurrentGenre,
+		sess.CurrentAuthor,
+		sess.GameState.Rules.ConsequenceModel,
+	)
+	pdf.Cell(0, 10, subtitle)
 	pdf.Ln(20)
 
 	pdf.SetFont("Helvetica", "", 12)

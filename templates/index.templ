@@ -28,8 +28,25 @@ templ Index(title string) {
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 			<style>
-				:root {
-					--background-color: #dbdbdb;
+								:root {
+					--background-color: #181818; /* Light Grey */
+					--primary-color: #3498db; /* Default Blue */
+					--send-button-color: #3498db; /* Default Blue */
+				}
+
+				.theme-fantasy {
+					--primary-color: #8e44ad; /* Wisteria Purple */
+					--send-button-color: #8e44ad; /* Wisteria Purple */
+				}
+
+				.theme-sci-fi {
+					--primary-color: #2980b9; /* Belize Hole Blue */
+					--send-button-color: #2980b9; /* Belize Hole Blue */
+				}
+
+				.theme-historical-fiction {
+					--primary-color: #c0392b; /* Pomegranate Red */
+					--send-button-color: #c0392b; /* Pomegranate Red */
 				}
 
 				body { 
@@ -69,21 +86,38 @@ templ Index(title string) {
 					font-family: 'JetBrains Mono', monospace;
 					padding: 10px 20px; 
 					font-size: 1em; 
-					border: none; 
-					background-color: #007acc;
-					color: white; 
+					border: 2px solid;
+					background-color: #333;
+					color: #d4d4d4; 
 					border-radius: 4px; 
 					cursor: pointer; 
-					transition: background-color 0.3s;
+					transition: background-color 0.3s, color 0.3s;
+					font-weight: bold;
 				}
-				button:hover {
-					background-color: #0099ff;
+
+				.genre-buttons .fantasy-btn { border-color: #8e44ad; }
+				.genre-buttons .scifi-btn { border-color: #2980b9; }
+				.genre-buttons .historical-fiction-btn { border-color: #c0392b; }
+
+				.genre-buttons .fantasy-btn:hover { background-color: #8e44ad; color: white; }
+				.genre-buttons .scifi-btn:hover { background-color: #2980b9; color: white; }
+				.genre-buttons .historical-fiction-btn:hover { background-color: #c0392b; color: white; }
+
+				/* Make the Send button less prominent */
+				#response-form button {
+					border-color: var(--send-button-color);
+				}
+
+				#response-form button:hover {
+					background-color: var(--send-button-color);
+					color: white;
 				}
 
 				/* Spinner styles */
 				.loader {
-					border: 8px solid #333;
+					border: 8px solid transparent;
 					border-top: 8px solid var(--background-color);
+					border-bottom: 8px solid white;
 					border-radius: 50%;
 					width: 60px;
 					height: 60px;
@@ -153,60 +187,69 @@ templ Index(title string) {
 					margin-left: 10px;
 				}
 
-				/* Survive switch styles */
-				.switch-container {
-					display: flex;
-					align-items: center;
-					justify-content: center;
+				/* Difficulty selector styles */
+				.difficulty-container {
 					margin-top: 20px;
+					display: flex;
+					justify-content: center;
+					align-items: center;
+					gap: 10px;
 				}
-				.switch {
-					position: relative;
-					display: inline-block;
-					width: 60px;
-					height: 34px;
-				}
-				.switch input {
-					opacity: 0;
-					width: 0;
-					height: 0;
-				}
-				.slider {
-					position: absolute;
-					cursor: pointer;
-					top: 0;
-					left: 0;
-					right: 0;
-					bottom: 0;
-					background-color: #ccc;
-					transition: .4s;
-				}
-				.slider:before {
-					position: absolute;
-					content: "";
-					height: 26px;
-					width: 26px;
-					left: 4px;
-					bottom: 4px;
-					background-color: white;
-					transition: .4s;
-				}
-				input:checked + .slider {
-					background-color: #f92672;
-				}
-				input:checked + .slider:before {
-					transform: translateX(26px);
-				}
-				.slider.round {
-					border-radius: 34px;
-				}
-				.slider.round:before {
-					border-radius: 50%;
-				}
-				.switch-label {
-					margin-left: 10px;
+				.difficulty-label {
 					font-size: 1.2em;
 					color: #ffffff;
+				}
+				#difficulty-selector {
+					font-family: 'JetBrains Mono', monospace;
+					padding: 8px;
+					border-radius: 4px;
+					border: 1px solid #333;
+					background-color: #1e1e1e;
+					color: #d4d4d4;
+				}
+
+				/* Player Status Bar */
+				#player-status {
+					text-align: left;
+					margin-bottom: 20px;
+					padding: 10px;
+					background-color: #1e1e1e;
+					border: 1px solid #333;
+					border-radius: 4px;
+				}
+				.condition {
+					color: #fd971f; /* Orange */
+					font-style: italic;
+				}
+
+				/* Tooltip Styles */
+				.tooltip {
+					position: relative;
+					display: inline-block;
+					cursor: help;
+					border-bottom: 1px dotted #ccc;
+				}
+
+				.tooltip .tooltiptext {
+					visibility: hidden;
+					width: 160px;
+					background-color: #555;
+					color: #fff;
+					text-align: center;
+					border-radius: 6px;
+					padding: 5px;
+					position: absolute;
+					z-index: 1;
+					bottom: 125%;
+					left: 50%;
+					margin-left: -80px;
+					opacity: 0;
+					transition: opacity 0.3s;
+				}
+
+				.tooltip:hover .tooltiptext {
+					visibility: visible;
+					opacity: 1;
 				}
 			</style>
 		</head>
@@ -225,28 +268,29 @@ templ Index(title string) {
 					<ul>
 						<li>Use quotations when speaking</li>
 						<li>Interact with characters, animals, and objects</li>
-                        <li>Choose "Survival" at your own risk - it proves for a dangerous story</li>
+                        						<li>Choose your difficulty wisely</li>
 						<li>Be creative!</li>
 					</ul>
 					<h3>Choose Your Adventure:</h3>
 				</div>
 				<div class="genre-buttons">
-					<button hx-get="/start" hx-vars="genre:'fantasy', survive:document.getElementById('survive-switch').checked" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
 						Fantasy
 					</button>
-					<button hx-get="/start" hx-vars="genre:'sci-fi', survive:document.getElementById('survive-switch').checked" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
 						Sci-Fi
 					</button>
-					<button hx-get="/start" hx-vars="genre:'historical-fiction', survive:document.getElementById('survive-switch').checked" hx-target="#story-container" hx-swap="innerHTML" hx-indicator="#spinner">
+					<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
 						Historical Fiction
 					</button>
 				</div>
-				<div class="switch-container">
-					<label class="switch">
-						<input type="checkbox" id="survive-switch"/>
-						<span class="slider round"></span>
-					</label>
-					<label for="survive-switch" class="switch-label">Survival</label>
+				<div class="difficulty-container">
+					<label for="difficulty-selector" class="difficulty-label">Difficulty:</label>
+					<select id="difficulty-selector">
+						<option value="exploratory">Exploratory</option>
+						<option value="challenging" selected>Challenging</option>
+						<option value="punishing">Punishing</option>
+					</select>
 				</div>
 			</div>
 

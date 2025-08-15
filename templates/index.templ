@@ -295,22 +295,25 @@ templ Index(title string) {
 			<div id="story-container">
 				<h1>Welcome, Traveler</h1>
 				<div class="rules">
-					<h3>Rules of Play:</h3>
+					<h3>How to Play</h3>
 					<ul>
-						<li>You will be presented with a story</li>
-						<li>Respond to the story in 15 words or less</li>
-						<li>Your choices will shape the narrative</li>
-						<li>You can interact with characters and pick up items</li>
+						<li>Read the story, then respond in 15 words or less</li>
+						<li>Your choices shape the narrative</li>
+						<li>Use quotes to speak, e.g., "Hello there"</li>
+						<li>Interact with anything you can imagine</li>
 					</ul>
-					<h3>Tips:</h3>
+					<h3>Tips</h3>
 					<ul>
-						<li>Use quotations when speaking</li>
-						<li>Interact with characters, animals, and objects</li>
-						<li>Choose your difficulty wisely</li>
-						<li>Historical-fiction has a longer initial loading time</li>
-                        <li>The narrator likes to present challenging puzzles, so be creative!</li>
+						<li>Be creative to solve puzzles and uncover secrets</li>
+						<li>Difficulty impacts the severity of consequences</li>
+						<li>The world is dynamic; your actions matter</li>
 					</ul>
-					<h3>Choose Your Adventure:</h3>
+					<h3>Text Colors</h3>
+					<ul>
+						<li><span style="color: #a6e22e;">Green:</span> Item acquired</li>
+						<li><span style="color: #f92672;">Red:</span> Item lost</li>
+						<li><span style="color: #e2c8b9;">Cashmere:</span> Hover for details</li>
+					</ul>
 				</div>
 				<div class="genre-buttons">
 					<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">

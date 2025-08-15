@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/jung-kurt/gofpdf"
 	_ "modernc.org/sqlite"
@@ -56,7 +57,7 @@ var (
 	// Regex to find Markdown italics (*text*)
 	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
 	// Regex to find the body content
-	bodyRegex = regexp.MustCompile(`(?is)<body.*?>(.*?)<\/body>`)
+	bodyRegex = regexp.MustCompile(`(?is)<body.*?>(.*?)</body>`)
 	// Regex to remove script and style blocks
 	scriptRegex = regexp.MustCompile(`(?is)<script.*?>.*?</script>`)
 	styleRegex  = regexp.MustCompile(`(?is)<style.*?>.*?</style>`)
@@ -386,55 +387,152 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 }
 
+// writeHtmlToPdf parses a simple HTML string and writes it to the PDF, handling nested styles.
+func writeHtmlToPdf(pdf *gofpdf.Fpdf, htmlStr string) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader("<body>" + htmlStr + "</body>"))
+	if err != nil {
+		pdf.MultiCell(0, 6, htmlStr, "", "", false)
+		return
+	}
+
+	var currentStyle string
+	var process func(*goquery.Selection)
+	process = func(s *goquery.Selection) {
+		s.Contents().Each(func(i int, content *goquery.Selection) {
+			// Skip tooltiptext spans entirely in the main processing loop
+			if content.HasClass("tooltiptext") {
+				return
+			}
+
+			if goquery.NodeName(content) == "#text" {
+				pdf.SetFontStyle(currentStyle)
+				pdf.Write(6, content.Text())
+			} else {
+				// Store parent's state
+				r, g, b := pdf.GetTextColor()
+				parentStyle := currentStyle
+
+				// Determine new style for this node's children
+				switch goquery.NodeName(content) {
+				case "strong":
+					if !strings.Contains(currentStyle, "B") {
+						currentStyle += "B"
+					}
+				case "em":
+					if !strings.Contains(currentStyle, "I") {
+						currentStyle += "I"
+					}
+				case "span":
+					if content.HasClass("item-added") {
+						pdf.SetTextColor(34, 139, 34) // ForestGreen
+					} else if content.HasClass("item-removed") {
+						pdf.SetTextColor(165, 42, 42) // Brown
+						if !strings.Contains(currentStyle, "S") {
+							currentStyle += "S"
+						}
+					} else if content.HasClass("proper-noun") {
+						pdf.SetTextColor(139, 115, 85) // Dark Tan
+					}
+				}
+
+				// Process children with the new style
+				process(content)
+
+				// Restore parent's state for subsequent siblings
+				pdf.SetTextColor(r, g, b)
+				currentStyle = parentStyle
+				pdf.SetFontStyle(currentStyle)
+
+				// Handle tooltips after processing children and restoring state
+				if content.HasClass("proper-noun") && content.HasClass("tooltip") {
+					tooltipText := content.Find(".tooltiptext").Text()
+					if tooltipText != "" {
+						// Save current state for tooltip
+						tr, tg, tb := pdf.GetTextColor()
+						tStyle := currentStyle
+						// Apply tooltip style
+						pdf.SetTextColor(128, 128, 128) // Gray
+						pdf.SetFontStyle("I")
+						pdf.Write(6, fmt.Sprintf(" (%s)", tooltipText))
+						// Restore state after tooltip
+						pdf.SetTextColor(tr, tg, tb)
+						pdf.SetFontStyle(tStyle)
+					}
+				}
+			}
+		})
+	}
+	process(doc.Find("body"))
+	pdf.SetFontStyle("") // Final reset
+}
+
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
 	pdf := gofpdf.New("P", "mm", "A4", "")
-	pdf.AddPage()
-	pdf.SetFont("Helvetica", "B", 24)
-	pdf.Cell(0, 10, "Your Story")
-	pdf.Ln(15)
 
-	pdf.SetFont("Helvetica", "I", 14)
-	subtitle := fmt.Sprintf("An AI-generated %s story in the style of %s (Difficulty: %s)",
-		sess.CurrentGenre,
+	pdf.SetFooterFunc(func() {
+		pdf.SetY(-15)
+		pdf.SetFont("Times", "I", 8)
+		pdf.CellFormat(0, 10, fmt.Sprintf("Page %d", pdf.PageNo()), "", 0, "C", false, 0, "")
+	})
+
+	// Title Page
+	pdf.AddPage()
+	pdf.SetFont("Times", "B", 36)
+	pdf.Cell(0, 80, "")
+	pdf.Ln(-1)
+	pdf.CellFormat(0, 10, "Your Story", "", 1, "C", false, 0, "")
+	pdf.Ln(10)
+
+	pdf.SetFont("Times", "I", 16)
+	subtitle := fmt.Sprintf("An AI-generated %s tale in the style of %s",
+		strings.Title(sess.CurrentGenre),
 		sess.CurrentAuthor,
-		sess.GameState.Rules.ConsequenceModel,
 	)
-	pdf.Cell(0, 10, subtitle)
-	pdf.Ln(15)
+	pdf.CellFormat(0, 10, subtitle, "", 1, "C", false, 0, "")
+	pdf.Ln(5)
+
+	pdf.SetFont("Times", "", 12)
+	difficulty := fmt.Sprintf("Difficulty: %s", strings.Title(sess.GameState.Rules.ConsequenceModel))
+	pdf.CellFormat(0, 10, difficulty, "", 1, "C", false, 0, "")
 
 	if sess.CurrentGenre == "historical-fiction" {
-		pdf.SetFont("Helvetica", "B", 12)
-		pdf.Cell(0, 10, "Historical Context")
-		pdf.Ln(8)
-		pdf.SetFont("Helvetica", "", 12)
-		pdf.MultiCell(0, 5, fmt.Sprintf("Event: %s\nDescription: %s\nLink: %s", sess.HistoricalEvent, sess.HistoricalDesc, sess.HistoricalURL), "", "", false)
-		pdf.Ln(10)
+		pdf.Ln(20)
+		pdf.SetFont("Times", "B", 14)
+		pdf.CellFormat(0, 10, "Historical Context", "", 1, "C", false, 0, "")
+		pdf.Ln(5)
+		pdf.SetFont("Times", "", 12)
+		contextText := fmt.Sprintf("Event: %s\n%s", sess.HistoricalEvent, sess.HistoricalDesc)
+		pdf.MultiCell(0, 6, contextText, "", "C", false)
+		pdf.Ln(2)
+		pdf.SetFont("Times", "I", 10)
+		pdf.SetTextColor(65, 105, 225) // RoyalBlue
+		pdf.CellFormat(0, 10, sess.HistoricalURL, "", 1, "C", false, 0, sess.HistoricalURL)
+		pdf.SetTextColor(0, 0, 0)
 	}
 
-	pdf.SetFont("Helvetica", "", 12)
+	// Story Pages
+	pdf.AddPage()
+	pdf.SetFont("Times", "", 12)
+	pdf.SetMargins(20, 20, 20)
+
 	for _, page := range sess.StoryHistory {
-		pdf.SetFontStyle("I")
-		pdf.Write(5, page.Prompt)
-		pdf.Ln(10)
+		pdf.SetFont("Times", "I", 12)
+		pdf.SetTextColor(64, 64, 64)
+		pdf.MultiCell(0, 6, "> "+page.Prompt, "", "", false)
+		pdf.Ln(6)
 
-		pdf.SetFontStyle("")
-		cleanResponse := strings.ReplaceAll(page.Response, "<strong>", "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, "</strong>", "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, "<em>", "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, "</em>", "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, `<span class="item-added">`, "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, `<span class="item-removed">`, "")
-		cleanResponse = strings.ReplaceAll(cleanResponse, `</span>`, "")
-
-		pdf.MultiCell(0, 5, cleanResponse, "", "", false)
-		pdf.Ln(10)
+		pdf.SetFont("Times", "", 12)
+		pdf.SetTextColor(0, 0, 0)
+		writeHtmlToPdf(pdf, page.Response)
+		pdf.Ln(12)
 	}
 
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", "attachment; filename=story.pdf")
 	err := pdf.Output(w)
 	if err != nil {
+		log.Printf("Error generating PDF: %v", err)
 		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
 	}
 }

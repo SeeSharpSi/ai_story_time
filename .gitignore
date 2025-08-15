@@ -1,3 +1,4 @@
 .env
 deploy.sh
 app.log
+.env_prod

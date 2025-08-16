@@ -58,23 +58,45 @@ var (
 )
 
 // addTooltipSpans finds all occurrences of proper nouns from the game state in the
-// story text and wraps them in HTML spans for tooltips.
+// story text and wraps them in HTML spans for tooltips. It uses a two-pass
+// placeholder system to prevent nesting tooltips within each other.
 func addTooltipSpans(storyText string, nouns []story.ProperNoun) string {
 	// Sort nouns by length in descending order to match longer phrases first.
 	sort.Slice(nouns, func(i, j int) bool {
 		return len(nouns[i].PhraseUsed) > len(nouns[j].PhraseUsed)
 	})
 
-	for _, noun := range nouns {
-		// Use a regex to find the phrase as a whole word/phrase, avoiding partial matches.
-		// The `(?i)` flag makes the match case-insensitive.
-		re := regexp.MustCompile(fmt.Sprintf(`(?i)\b(%s)\b`, regexp.QuoteMeta(noun.PhraseUsed)))
+	placeholderMap := make(map[string]story.ProperNoun)
+	currentStory := storyText
+	placeholderIndex := 0
 
-		tooltipContent := noun.Description
-		wrapper := fmt.Sprintf(`<span class="proper-noun tooltip">%s<span class="tooltiptext">%s</span></span>`, "$1", tooltipContent)
-		storyText = re.ReplaceAllString(storyText, wrapper)
+	// Pass 1: Replace all phrases with unique, safe placeholders.
+	for _, noun := range nouns {
+		re := regexp.MustCompile(fmt.Sprintf(`(?i)\b%s\b`, regexp.QuoteMeta(noun.PhraseUsed)))
+		
+		// Use ReplaceAllStringFunc to avoid replacing parts of already-made placeholders
+		// or HTML tags from previous replacements in this loop.
+		currentStory = re.ReplaceAllStringFunc(currentStory, func(match string) string {
+			// Check if we are about to replace something that is already a placeholder
+			if strings.HasPrefix(match, "__NOUN_PLACEHOLDER_") {
+				return match
+			}
+			
+			placeholder := fmt.Sprintf("__NOUN_PLACEHOLDER_%d__", placeholderIndex)
+			placeholderMap[placeholder] = noun
+			placeholderIndex++
+			return placeholder
+		})
 	}
-	return storyText
+
+	// Pass 2: Replace placeholders with the final HTML.
+	finalStory := currentStory
+	for placeholder, noun := range placeholderMap {
+		wrapper := fmt.Sprintf(`<span class="proper-noun tooltip">%s<span class="tooltiptext">%s</span></span>`, noun.PhraseUsed, noun.Description)
+		finalStory = strings.Replace(finalStory, placeholder, wrapper, -1)
+	}
+
+	return finalStory
 }
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
@@ -282,13 +304,13 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	aiResp, err := h.parseAndRetryAIResponse(context.Background(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to parse AI's initial response: %%v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to parse AI's initial response: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	validateAndCorrectProperNouns(&aiResp)
 
-	log.Printf("--- NEW GAME STATE (START) --- %%s", prettyPrint(aiResp.NewGameState))
+	log.Printf("--- NEW GAME STATE (START) --- %s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
@@ -342,7 +364,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	aiResp, err := h.parseAndRetryAIResponse(r.Context(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %%v]", err)}
+		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
 		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 		return
@@ -350,14 +372,30 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	validateAndCorrectProperNouns(&aiResp)
 
-	log.Printf("--- NEW GAME STATE (GENERATE) --- %%s", prettyPrint(aiResp.NewGameState))
+	log.Printf("--- NEW GAME STATE (GENERATE) --- %s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
+	// Merge the AI's proper nouns into the session's master list.
+	existingNouns := make(map[string]bool)
+	for _, noun := range sess.GameState.ProperNouns {
+		existingNouns[noun.Noun] = true
+	}
+	for _, newNoun := range aiResp.NewGameState.ProperNouns {
+		if !existingNouns[newNoun.Noun] {
+			sess.GameState.ProperNouns = append(sess.GameState.ProperNouns, newNoun)
+			existingNouns[newNoun.Noun] = true
+		}
+	}
+
+	// Update the rest of the game state, but preserve our master noun list.
+	updatedNouns := sess.GameState.ProperNouns
 	sess.GameState = aiResp.NewGameState
-	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, sess.GameState.ProperNouns)
+	sess.GameState.ProperNouns = updatedNouns
+
+	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, aiResp.NewGameState.ProperNouns) // Use nouns from this turn for tooltips
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: storyText})
 	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 }
@@ -509,7 +547,7 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=story.pdf")
 	err := pdf.Output(w)
 	if err != nil {
-		log.Printf("Error generating PDF: %%v", err)
+		log.Printf("Error generating PDF: %v", err)
 		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
 	}
 }

@@ -20,6 +20,7 @@ type Session struct {
 	HistoricalEvent    string
 	HistoricalDesc     string
 	HistoricalURL      string
+	HistoricalSummary  string
 }
 
 // Manager handles the creation, storage, and retrieval of sessions.

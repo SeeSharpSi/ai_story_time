@@ -1,17 +1,25 @@
 package story
 
+// ProperNoun represents a noun and its description for tooltip generation.
+type ProperNoun struct {
+	Noun        string `json:"noun"`
+	PhraseUsed  string `json:"phrase_used"`
+	Description string `json:"description"`
+}
+
 // GameState represents the entire state of the game world.
 type GameState struct {
-	PlayerStatus  PlayerStatus `json:"player_status"`
-	Inventory     []Item       `json:"inventory"`
-	Environment   Environment  `json:"environment"`
-	World         World        `json:"world"`
-	NPCs          []NPC        `json:"npcs"`
-	Puzzles       []Puzzle     `json:"active_puzzles_and_obstacles"`
-	Rules         Rules        `json:"rules"`
-	Climax        bool         `json:"climax"`
-	WinConditions []string     `json:"win_conditions,omitempty"`
-	GameWon       bool         `json:"game_won"`
+	PlayerStatus  PlayerStatus   `json:"player_status"`
+	Inventory     []Item         `json:"inventory"`
+	Environment   Environment    `json:"environment"`
+	World         World          `json:"world"`
+	NPCs          []NPC          `json:"npcs"`
+	Puzzles       []Puzzle       `json:"active_puzzles_and_obstacles"`
+	ProperNouns   []ProperNoun   `json:"proper_nouns"`
+	Rules         Rules          `json:"rules"`
+	Climax        bool           `json:"climax"`
+	WinConditions []string       `json:"win_conditions,omitempty"`
+	GameWon       bool           `json:"game_won"`
 }
 
 // PlayerStatus tracks the player's condition.
@@ -54,9 +62,9 @@ type NPC struct {
 
 // Puzzle represents an active challenge for the player.
 type Puzzle struct {
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Status       string   `json:"status"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Status        string   `json:"status"`
 	SolutionHints []string `json:"solution_hints"`
 }
 

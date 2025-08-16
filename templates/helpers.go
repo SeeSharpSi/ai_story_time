@@ -50,7 +50,7 @@ func VignetteStyle(tension int) string {
 				left: 0;
 				right: 0;
 				bottom: 0;
-				box-shadow: inset 0 0 %dpx %dpx rgba(0,0,0,%.2f);
+				box-shadow: 0 0 %dpx %dpx rgba(0,0,0,%.2f);
 				transition: box-shadow 0.5s ease-in-out;
 				pointer-events: none;
 				border-radius: 8px;

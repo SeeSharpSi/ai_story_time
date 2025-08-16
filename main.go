@@ -26,6 +26,12 @@ func main() {
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-2.5-flash")
+	temp := float32(0.9)
+	//tokens := int32(10000)
+	model.GenerationConfig = genai.GenerationConfig{
+		//MaxOutputTokens: &tokens,
+		Temperature:     &temp,
+	}
 	sessionManager := session.NewManager()
 
 	h := &handlers.Handler{

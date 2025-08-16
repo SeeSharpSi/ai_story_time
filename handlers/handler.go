@@ -5,12 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"html"
-	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"regexp"
+	"sort"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
@@ -56,17 +55,27 @@ var (
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
 	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
-	// Regex to find the body content
-	bodyRegex = regexp.MustCompile(`(?is)<body.*?>(.*?)</body>`)
-	// Regex to remove script and style blocks
-	scriptRegex = regexp.MustCompile(`(?is)<script.*?>.*?</script>`)
-	styleRegex  = regexp.MustCompile(`(?is)<style.*?>.*?</style>`)
-	// Regex to remove any remaining HTML tags
-	htmlRegex = regexp.MustCompile(`<[^>]*>`)
-	// Regex to consolidate whitespace
-	whitespaceRegex = regexp.MustCompile(`\s+
-`)
 )
+
+// addTooltipSpans finds all occurrences of proper nouns from the game state in the
+// story text and wraps them in HTML spans for tooltips.
+func addTooltipSpans(storyText string, nouns []story.ProperNoun) string {
+	// Sort nouns by length in descending order to match longer phrases first.
+	sort.Slice(nouns, func(i, j int) bool {
+		return len(nouns[i].PhraseUsed) > len(nouns[j].PhraseUsed)
+	})
+
+	for _, noun := range nouns {
+		// Use a regex to find the phrase as a whole word/phrase, avoiding partial matches.
+		// The `(?i)` flag makes the match case-insensitive.
+		re := regexp.MustCompile(fmt.Sprintf(`(?i)\b(%s)\b`, regexp.QuoteMeta(noun.PhraseUsed)))
+
+		tooltipContent := noun.Description
+		wrapper := fmt.Sprintf(`<span class="proper-noun tooltip">%s<span class="tooltiptext">%s</span></span>`, "$1", tooltipContent)
+		storyText = re.ReplaceAllString(storyText, wrapper)
+	}
+	return storyText
+}
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
 func parseAIResponse(response string) (AIResponse, error) {
@@ -124,17 +133,68 @@ func prettyPrint(v interface{}) string {
 	return string(b)
 }
 
+func (h *Handler) buildSystemPrompt(s *session.Session) string {
+	prompt := fmt.Sprintf(prompts.BasePrompt, s.CurrentAuthor)
 
+	switch s.CurrentGenre {
+	case "fantasy":
+		prompt += prompts.FantasyPrompt
+	case "sci-fi":
+		prompt += prompts.SciFiPrompt
+	case "historical-fiction":
+		prompt += fmt.Sprintf(prompts.HistoricalFictionPrompt, s.HistoricalEvent, s.HistoricalDesc, s.HistoricalSummary)
+	default:
+		prompt += prompts.FantasyPrompt
+	}
+	return prompt
+}
 
+// validateAndCorrectProperNouns checks if the phrase_used for a proper noun is in the story.
+// If not, it tries to correct it by using the canonical noun. If neither is found,
+// the proper noun is removed from the list to prevent broken tooltips.
+func validateAndCorrectProperNouns(aiResp *AIResponse) {
+	if aiResp.NewGameState == nil {
+		return
+	}
 
+	var validatedNouns []story.ProperNoun
+	storyTextLower := strings.ToLower(aiResp.StoryUpdate.Story)
+
+	for _, noun := range aiResp.NewGameState.ProperNouns {
+		phraseUsedLower := strings.ToLower(noun.PhraseUsed)
+		nounLower := strings.ToLower(noun.Noun)
+
+		// To be valid, the phrase must exist as a whole word or phrase in the story.
+		// We construct a regex to check for this. \b is a word boundary.
+		phraseRegex := regexp.MustCompile(`\b` + regexp.QuoteMeta(phraseUsedLower) + `\b`)
+		nounRegex := regexp.MustCompile(`\b` + regexp.QuoteMeta(nounLower) + `\b`)
+
+		if phraseRegex.MatchString(storyTextLower) {
+			// The phrase_used is in the story, so it's valid.
+			validatedNouns = append(validatedNouns, noun)
+		} else if nounRegex.MatchString(storyTextLower) {
+			// The phrase_used was incorrect, but the canonical noun is in the story.
+			// We'll correct the phrase_used and keep the noun.
+			log.Printf("Correcting proper noun: phrase_used '%s' not found, but noun '%s' was. Updating phrase_used.", noun.PhraseUsed, noun.Noun)
+			noun.PhraseUsed = noun.Noun // Correct the phrase to the canonical noun.
+			validatedNouns = append(validatedNouns, noun)
+		} else {
+			// Neither the phrase_used nor the noun is in the story. Discard it.
+			log.Printf("Discarding proper noun: phrase_used '%s' and noun '%s' not found in story.", noun.PhraseUsed, noun.Noun)
+		}
+	}
+	aiResp.NewGameState.ProperNouns = validatedNouns
+}
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess, cookie := h.Manager.GetOrCreateSession(r)
 	http.SetCookie(w, &cookie)
 
+
 	genre := r.URL.Query().Get("genre")
 	consequenceModel := r.URL.Query().Get("consequence_model")
 	sess.GameState.Rules.ConsequenceModel = consequenceModel
+	sess.CurrentGenre = genre
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
@@ -155,81 +215,54 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
 
 	var prompt string
-	prompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
+	var inspirationTitle, inspirationDesc string
+
+	db, err := sql.Open("sqlite", "./data.db")
+	if err != nil {
+		http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
 
 	switch genre {
 	case "fantasy":
-		db, err := sql.Open("sqlite", "./data.db")
+		err = db.QueryRow("SELECT title, description FROM fantasy_inspo ORDER BY RANDOM() LIMIT 1").Scan(&inspirationTitle, &inspirationDesc)
 		if err != nil {
-			print(err.Error())
-			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			http.Error(w, "Failed to query database for fantasy inspiration.", http.StatusInternalServerError)
 			return
 		}
-		defer db.Close()
-
-		var title, description string
-		err = db.QueryRow("SELECT title, description FROM fantasy_inspo ORDER BY RANDOM() LIMIT 1").Scan(&title, &description)
-		if err != nil {
-			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
-			return
-		}
-
-		prompt += prompts.FantasyPrompt
-		prompt += fmt.Sprintf("\n- You MUST use the following title and description as inspiration for the story:\n- Title: %s\n- Description: %s\n", title, description)
-		sess.CurrentGenre = "fantasy"
+		prompt = h.buildSystemPrompt(sess)
+		prompt += fmt.Sprintf("\n- You MUST use the following title and description as inspiration for the story:\n- Title: %s\n- Description: %s\n", inspirationTitle, inspirationDesc)
 	case "sci-fi":
-		db, err := sql.Open("sqlite", "./data.db")
+		err = db.QueryRow("SELECT title, description FROM scifi_inspo ORDER BY RANDOM() LIMIT 1").Scan(&inspirationTitle, &inspirationDesc)
 		if err != nil {
-			print(err.Error())
-			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			http.Error(w, "Failed to query database for sci-fi inspiration.", http.StatusInternalServerError)
 			return
 		}
-		defer db.Close()
-
-		var title, description string
-		err = db.QueryRow("SELECT title, description FROM scifi_inspo ORDER BY RANDOM() LIMIT 1").Scan(&title, &description)
-		if err != nil {
-			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
-			return
-		}
-
-		prompt += prompts.SciFiPrompt
-		prompt += fmt.Sprintf("\n- You MUST use the following title and description as inspiration for the story:\n- Title: %s\n- Description: %s\n", title, description)
-		sess.CurrentGenre = "sci-fi"
+		prompt = h.buildSystemPrompt(sess)
+		prompt += fmt.Sprintf("\n- You MUST use the following title and description as inspiration for the story:\n- Title: %s\n- Description: %s\n", inspirationTitle, inspirationDesc)
 	case "historical-fiction":
-		db, err := sql.Open("sqlite", "./data.db")
+		var wikipediaURL string
+		err = db.QueryRow("SELECT event, description, wikipedia, summary FROM historical_events ORDER BY RANDOM() LIMIT 1").Scan(&sess.HistoricalEvent, &sess.HistoricalDesc, &wikipediaURL, &sess.HistoricalSummary)
 		if err != nil {
-			print(err.Error())
-			http.Error(w, "Failed to open database.", http.StatusInternalServerError)
+			http.Error(w, "Failed to query database for historical event.", http.StatusInternalServerError)
 			return
 		}
-		defer db.Close()
-
-		var event, description, wikipediaURL, summary string
-		err = db.QueryRow("SELECT event, description, wikipedia, summary FROM historical_events ORDER BY RANDOM() LIMIT 1").Scan(&event, &description, &wikipediaURL, &summary)
-		if err != nil {
-			http.Error(w, "Failed to query database.", http.StatusInternalServerError)
-			return
-		}
-
-		sess.HistoricalEvent = event
-		sess.HistoricalDesc = description
 		sess.HistoricalURL = wikipediaURL
-
-		prompt += fmt.Sprintf(prompts.HistoricalFictionPrompt, event, description, summary)
-		log.Printf("--- HISTORICAL EVENT --- Event: %s, Description: %s", event, description)
-		sess.CurrentGenre = "historical-fiction"
+		prompt = h.buildSystemPrompt(sess)
+		log.Printf("--- HISTORICAL EVENT --- Event: %s, Description: %s", sess.HistoricalEvent, sess.HistoricalDesc)
 	default:
-		prompt += prompts.FantasyPrompt
-		sess.CurrentGenre = "fantasy"
+		sess.CurrentGenre = "fantasy" // Default to fantasy
+		prompt = h.buildSystemPrompt(sess)
 	}
 
 	// The initial game state is empty, the AI will generate the starting scenario.
 	initialRequest := AIRequest{
 		GameState: &story.GameState{
-			Rules:  story.Rules{ConsequenceModel: consequenceModel},
-			World:  story.World{WorldTension: 0},
-			Climax: false,
+			Rules:       story.Rules{ConsequenceModel: consequenceModel},
+			World:       story.World{WorldTension: 0},
+			Climax:      false,
+			ProperNouns: []story.ProperNoun{},
 		},
 		UserAction: "Start the game.",
 	}
@@ -249,20 +282,24 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	aiResp, err := h.parseAndRetryAIResponse(context.Background(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to parse AI's initial response: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to parse AI's initial response: %%v", err), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("--- NEW GAME STATE (START) --- %s", prettyPrint(aiResp.NewGameState))
+	validateAndCorrectProperNouns(&aiResp)
+
+	log.Printf("--- NEW GAME STATE (START) --- %%s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
 	sess.GameState = aiResp.NewGameState
-	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: aiResp.StoryUpdate.Story}}
+	// The FoundItems list will be empty on start, so no need to update it yet.
+	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, sess.GameState.ProperNouns)
+	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
-	templates.StoryView(aiResp.StoryUpdate.Story, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension).Render(context.Background(), w)
+	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -281,19 +318,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var systemPrompt string
-	systemPrompt = fmt.Sprintf(prompts.BasePrompt, sess.CurrentAuthor)
-
-	switch sess.CurrentGenre {
-	case "fantasy":
-		systemPrompt += prompts.FantasyPrompt
-	case "sci-fi":
-		systemPrompt += prompts.SciFiPrompt
-	case "historical-fiction":
-		systemPrompt += prompts.HistoricalFictionPrompt
-	default:
-		systemPrompt += prompts.FantasyPrompt
-	}
+	systemPrompt := h.buildSystemPrompt(sess)
 
 	aiRequest := AIRequest{
 		GameState:  sess.GameState,
@@ -317,20 +342,23 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	aiResp, err := h.parseAndRetryAIResponse(r.Context(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
+		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %%v]", err)}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
 		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 		return
 	}
 
-	log.Printf("--- NEW GAME STATE (GENERATE) --- %s", prettyPrint(aiResp.NewGameState))
+	validateAndCorrectProperNouns(&aiResp)
+
+	log.Printf("--- NEW GAME STATE (GENERATE) --- %%s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
 	sess.GameState = aiResp.NewGameState
-	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: aiResp.StoryUpdate.Story})
+	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, sess.GameState.ProperNouns)
+	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: storyText})
 	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 }
 
@@ -378,7 +406,10 @@ func writeHtmlToPdf(pdf *gofpdf.Fpdf, htmlStr string) {
 							currentStyle += "S"
 						}
 					} else if content.HasClass("proper-noun") {
-						pdf.SetTextColor(139, 115, 85) // Dark Tan
+						// Proper nouns are bolded in the PDF instead of colored
+						if !strings.Contains(currentStyle, "B") {
+							currentStyle += "B"
+						}
 					}
 				}
 
@@ -389,23 +420,6 @@ func writeHtmlToPdf(pdf *gofpdf.Fpdf, htmlStr string) {
 				pdf.SetTextColor(r, g, b)
 				currentStyle = parentStyle
 				pdf.SetFontStyle(currentStyle)
-
-				// Handle tooltips after processing children and restoring state
-				if content.HasClass("proper-noun") && content.HasClass("tooltip") {
-					tooltipText := content.Find(".tooltiptext").Text()
-					if tooltipText != "" {
-						// Save current state for tooltip
-						tr, tg, tb := pdf.GetTextColor()
-						tStyle := currentStyle
-						// Apply tooltip style
-						pdf.SetTextColor(128, 128, 128) // Gray
-						pdf.SetFontStyle("I")
-						pdf.Write(6, fmt.Sprintf(" (%s)", tooltipText))
-						// Restore state after tooltip
-						pdf.SetTextColor(tr, tg, tb)
-						pdf.SetFontStyle(tStyle)
-					}
-				}
 			}
 		})
 	}
@@ -475,11 +489,27 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		pdf.Ln(12)
 	}
 
+	// Glossary Page
+	if len(sess.GameState.ProperNouns) > 0 {
+		pdf.AddPage()
+		pdf.SetFont("Times", "B", 24)
+		pdf.CellFormat(0, 10, "Glossary of Terms", "", 1, "C", false, 0, "")
+		pdf.Ln(10)
+		pdf.SetFont("Times", "", 12)
+		for _, noun := range sess.GameState.ProperNouns {
+			pdf.SetFont("Times", "B", 12)
+			pdf.Write(6, noun.Noun+": ")
+			pdf.SetFont("Times", "", 12)
+			pdf.Write(6, noun.Description)
+			pdf.Ln(8)
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", "attachment; filename=story.pdf")
 	err := pdf.Output(w)
 	if err != nil {
-		log.Printf("Error generating PDF: %v", err)
+		log.Printf("Error generating PDF: %%v", err)
 		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
 	}
 }

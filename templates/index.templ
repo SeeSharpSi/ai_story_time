@@ -157,9 +157,7 @@ templ Index(title string) {
 					text-decoration: line-through;
 				}
 				#response-form {
-					display: flex;
 					margin-bottom: 20px;
-					align-items: center;
 				}
 				#prompt {
 					flex-grow: 1;
@@ -170,6 +168,7 @@ templ Index(title string) {
 					color: #d4d4d4;
 					font-family: 'JetBrains Mono', monospace;
 					margin-right: 10px; /* Add space between input and button */
+					box-sizing: border-box; /* Prevents padding from adding to the width */
 				}
 				#inventory {
 					text-align: left;
@@ -259,7 +258,7 @@ templ Index(title string) {
 				/* Tooltip Styles */
 				.tooltip {
 					position: relative;
-					display: inline-block;
+					display: inline; /* Allow the span to wrap with text */
 					cursor: help;
 				}
 

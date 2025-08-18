@@ -49,14 +49,23 @@ templ Index(title string) {
 				body { 
 					font-family: 'JetBrains Mono', monospace;
 					margin: 0; 
-					padding: 20px; 
 					background-color: var(--background-color);
 					color: #d4d4d4;
 					display: flex; 
+					flex-direction: column;
 					justify-content: center; 
 					align-items: center; 
 					min-height: 100vh; 
 					transition: background-color 0.5s;
+				}
+				#main-wrapper {
+					padding: 20px;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					align-items: center;
+					width: 100%;
+					box-sizing: border-box;
 				}
 				#story-container { 
 					max-width: 600px; 
@@ -288,51 +297,73 @@ templ Index(title string) {
 					color: #e2c8b9;
 					cursor: help;
 				}
+				.footer {
+					text-align: center;
+					padding-top: 20px;
+					font-size: 0.9em;
+					color: #888;
+				}
+				.footer a {
+					color: #aaa;
+					text-decoration: none;
+				}
+				.footer a:hover {
+					text-decoration: underline;
+				}
+				.footer span {
+					margin: 0 10px;
+				}
 			</style>
 		</head>
 		<body>
-			<div id="story-container">
-				<h1>Welcome, Traveler</h1>
-				<div class="rules">
-					<h3>How to Play</h3>
-					<ul>
-						<li>Read the story, then respond in 15 words or less</li>
-						<li>Your choices shape the narrative</li>
-						<li>Use quotes to speak, e.g., "Hello there"</li>
-						<li>Interact with anything you can imagine</li>
-					</ul>
-					<h3>Tips</h3>
-					<ul>
-						<li>Be creative to solve puzzles and uncover secrets</li>
-						<li>Difficulty impacts the severity of consequences</li>
-						<li>The world is dynamic; your actions matter</li>
-					</ul>
-					<h3>Text Colors</h3>
-					<ul>
-						<li><span style="color: #a6e22e;">Green:</span> Item acquired</li>
-						<li><span style="color: #f92672;">Red:</span> Item lost</li>
-						<li><span style="color: #e2c8b9;">Cashmere:</span> Hover for details</li>
-					</ul>
+			<div id="main-wrapper">
+				<div id="story-container">
+					<h1>Welcome, Traveler</h1>
+					<div class="rules">
+						<h3>How to Play</h3>
+						<ul>
+							<li>Read the story, then respond in 15 words or less</li>
+							<li>Your choices shape the narrative</li>
+							<li>Use quotes to speak, e.g., "Hello there"</li>
+							<li>Interact with anything you can imagine</li>
+						</ul>
+						<h3>Tips</h3>
+						<ul>
+							<li>Be creative to solve puzzles and uncover secrets</li>
+							<li>Difficulty impacts the severity of consequences</li>
+							<li>The world is dynamic; your actions matter</li>
+						</ul>
+						<h3>Text Colors</h3>
+						<ul>
+							<li><span style="color: #a6e22e;">Green:</span> Item acquired</li>
+							<li><span style="color: #f92672;">Red:</span> Item lost</li>
+							<li><span style="color: #e2c8b9;">Cashmere:</span> Hover for details</li>
+						</ul>
+					</div>
+					<div class="genre-buttons">
+						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-wrapper" hx-swap="innerHTML" hx-indicator="#spinner">
+							Fantasy
+						</button>
+						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-wrapper" hx-swap="innerHTML" hx-indicator="#spinner">
+							Sci-Fi
+						</button>
+						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-wrapper" hx-swap="innerHTML" hx-indicator="#spinner">
+							Historical Fiction
+						</button>
+					</div>
+					<div class="difficulty-container">
+						<label for="difficulty-selector" class="difficulty-label">Difficulty:</label>
+						<select id="difficulty-selector">
+							<option value="exploratory">Exploratory</option>
+							<option value="challenging" selected>Challenging</option>
+							<option value="punishing">Punishing</option>
+						</select>
+					</div>
 				</div>
-				<div class="genre-buttons">
-					<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
-						Fantasy
-					</button>
-					<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
-						Sci-Fi
-					</button>
-					<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
-						Historical Fiction
-					</button>
-				</div>
-				<div class="difficulty-container">
-					<label for="difficulty-selector" class="difficulty-label">Difficulty:</label>
-					<select id="difficulty-selector">
-						<option value="exploratory">Exploratory</option>
-						<option value="challenging" selected>Challenging</option>
-						<option value="punishing">Punishing</option>
-					</select>
-				</div>
+				<footer class="footer">
+					<span><a href="https://ko-fi.com/silastompkins" target="_blank">Support on Ko-fi</a></span>
+					<span><a href="https://github.com/SeeSharpSi/ai_story_time" target="_blank">GitHub</a></span>
+				</footer>
 			</div>
 			<div id="spinner" class="htmx-indicator">
 				<div class="loader"></div>

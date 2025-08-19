@@ -1,6 +1,6 @@
-# Story AI 🤖✍️
+# Fable Mind 🤖✍️
 
-**Story AI is an interactive, text-based adventure game powered by Google's Gemini API.** Players craft a unique story by responding to AI-generated scenarios, with their choices directly shaping the narrative, the items they discover, and the world they explore.
+**Fable Mind is an interactive, text-based adventure game powered by Google's Gemini API.** Players craft a unique story by responding to AI-generated scenarios, with their choices directly shaping the narrative, the items they discover, and the world they explore.
 
 ---
 

@@ -321,7 +321,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, sess.GameState.ProperNouns)
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
-	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension).Render(context.Background(), w)
+	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {

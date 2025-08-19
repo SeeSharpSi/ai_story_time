@@ -4,7 +4,7 @@ import "fmt"
 import "story_ai/story"
 import "strings"
 
-templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string, worldTension int) {
+templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, genre string, worldTension int, difficulty string) {
 	<div id="story-container" class={ "theme-" + genre }>
 		<div id="dynamic-styles-wrapper">
 			@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
@@ -29,6 +29,7 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 			<input type="text" id="prompt" name="prompt" autofocus="autofocus" autocomplete="off" placeholder="What do you do?" style="width: 100%; margin-bottom: 10px;"/>
 			<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
 				<button type="submit">Send</button>
+				<span style="font-style: italic; color: #888; font-size: 0.8em;">{ strings.Title(difficulty) }</span>
 				<span id="word-count">0/15 words</span>
 			</div>
 		</form>

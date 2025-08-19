@@ -46,21 +46,34 @@ templ Index(title string) {
 					--send-button-color: #c0392b; /* Pomegranate Red */
 				}
 
+				html, body {
+					overflow-x: hidden;
+				}
+
 				body { 
 					font-family: 'JetBrains Mono', monospace;
 					margin: 0; 
-					padding: 20px; 
+					padding: 20px 15px; 
 					background-color: var(--background-color);
 					color: #d4d4d4;
 					display: flex; 
+					flex-direction: column;
 					justify-content: center; 
 					align-items: center; 
 					min-height: 100vh; 
 					transition: background-color 0.5s;
+					box-sizing: border-box;
+				}
+				#main-content {
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					align-items: center;
+					width: 100%;
 				}
 				#story-container { 
 					max-width: 600px; 
-					width: 100%; 
+					width: 95%; 
 					background-color: #252526;
 					padding: 40px; 
 					border-radius: 8px; 
@@ -68,6 +81,7 @@ templ Index(title string) {
 					text-align: center; 
 					border: 1px solid #333333;
 					position: relative;
+					box-sizing: border-box;
 				}
 				h1, h3 {
 					color: #ffffff;
@@ -120,6 +134,7 @@ templ Index(title string) {
 					width: 60px;
 					height: 60px;
 					animation: spin 1s linear infinite;
+					pointer-events: auto; /* Re-enable pointer events for the spinner */
 				}
 
 				@keyframes spin {
@@ -127,14 +142,33 @@ templ Index(title string) {
 					100% { transform: rotate(360deg); }
 				}
 
-				.htmx-indicator { display: none; }
+				.htmx-indicator { 
+					display: none; 
+					position: fixed;
+				}
 				.htmx-request.htmx-indicator {
 					display: block;
-					position: fixed;
 					top: 50%;
 					left: 50%;
 					transform: translate(-50%, -50%);
 					z-index: 1000;
+				}
+
+				#loading-indicator {
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					pointer-events: none; /* Allow clicks to pass through the container */
+				}
+
+				.loading-text {
+					color: #d4d4d4;
+					margin-top: 15px;
+					font-style: italic;
+					background-color: rgba(40, 40, 40, 0.9); /* Semi-transparent dark grey */
+					padding: 15px;
+					border-radius: 8px;
+					pointer-events: auto; /* Re-enable pointer events for the text */
 				}
 
 				/* Story view styles */
@@ -288,51 +322,78 @@ templ Index(title string) {
 					color: #e2c8b9;
 					cursor: help;
 				}
+				.footer {
+					text-align: center;
+					padding-top: 20px;
+					font-size: 0.9em;
+					color: #888;
+				}
+				.footer a {
+					color: #aaa;
+					text-decoration: none;
+				}
+				.footer a:hover {
+					text-decoration: underline;
+				}
+				.footer span {
+					margin: 0 10px;
+				}
 			</style>
 		</head>
 		<body>
-			<div id="story-container">
-				<h1>Welcome, Traveler</h1>
-				<div class="rules">
-					<h3>How to Play</h3>
-					<ul>
-						<li>Read the story, then respond in 15 words or less</li>
-						<li>Your choices shape the narrative</li>
-						<li>Use quotes to speak, e.g., "Hello there"</li>
-						<li>Interact with anything you can imagine</li>
-					</ul>
-					<h3>Tips</h3>
-					<ul>
-						<li>Be creative to solve puzzles and uncover secrets</li>
-						<li>Difficulty impacts the severity of consequences</li>
-						<li>The world is dynamic; your actions matter</li>
-					</ul>
-					<h3>Text Colors</h3>
-					<ul>
-						<li><span style="color: #a6e22e;">Green:</span> Item acquired</li>
-						<li><span style="color: #f92672;">Red:</span> Item lost</li>
-						<li><span style="color: #e2c8b9;">Cashmere:</span> Hover for details</li>
-					</ul>
+			<div id="main-content">
+				<div id="story-container">
+					<h1>Welcome, Traveler</h1>
+					<div class="rules">
+						<h3>How to Play</h3>
+						<ul>
+							<li>Read the story, then respond in 15 words or less</li>
+							<li>Your choices shape the narrative</li>
+							<li>Use quotes to speak, e.g., "Hello there"</li>
+							<li>Interact with anything you can imagine</li>
+						</ul>
+						<h3>Tips</h3>
+						<ul>
+							<li>Be creative to solve puzzles and uncover secrets</li>
+							<li>Difficulty impacts the severity of consequences</li>
+							<li>The world is dynamic; your actions matter</li>
+							<li>Hover/tap item names in your inventory for details</li>
+						</ul>
+						<h3>Text Colors</h3>
+						<ul>
+							<li><span style="color: #a6e22e;">Green:</span> Item acquired</li>
+							<li><span style="color: #f92672;">Red:</span> Item lost</li>
+							<li><span style="color: #e2c8b9;">Cashmere:</span> Hover/tap for details</li>
+						</ul>
+					</div>
+					<div class="genre-buttons">
+						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+							Fantasy
+						</button>
+						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+							Sci-Fi
+						</button>
+						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+							Historical Fiction
+						</button>
+					</div>
+					<div class="difficulty-container">
+						<label for="difficulty-selector" class="difficulty-label">Difficulty:</label>
+						<select id="difficulty-selector">
+							<option value="exploratory">Exploratory</option>
+							<option value="challenging" selected>Challenging</option>
+							<option value="punishing">Punishing</option>
+						</select>
+					</div>
 				</div>
-				<div class="genre-buttons">
-					<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
-						Fantasy
-					</button>
-					<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
-						Sci-Fi
-					</button>
-					<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#story-container" hx-swap="outerHTML" hx-indicator="#spinner">
-						Historical Fiction
-					</button>
-				</div>
-				<div class="difficulty-container">
-					<label for="difficulty-selector" class="difficulty-label">Difficulty:</label>
-					<select id="difficulty-selector">
-						<option value="exploratory">Exploratory</option>
-						<option value="challenging" selected>Challenging</option>
-						<option value="punishing">Punishing</option>
-					</select>
-				</div>
+				<footer class="footer">
+					<span><a href="https://ko-fi.com/silastompkins" target="_blank">Support on Ko-fi</a></span>
+					<span><a href="https://github.com/SeeSharpSi/ai_story_time" target="_blank">GitHub</a></span>
+				</footer>
+			</div>
+			<div id="loading-indicator" class="htmx-indicator">
+				<div class="loader"></div>
+				<p class="loading-text">Starting your story... This can take up to 15 seconds.</p>
 			</div>
 			<div id="spinner" class="htmx-indicator">
 				<div class="loader"></div>

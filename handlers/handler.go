@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
-	"sort"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
@@ -56,48 +55,6 @@ var (
 	// Regex to find Markdown italics (*text*)
 	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
 )
-
-// addTooltipSpans finds all occurrences of proper nouns from the game state in the
-// story text and wraps them in HTML spans for tooltips. It uses a two-pass
-// placeholder system to prevent nesting tooltips within each other.
-func addTooltipSpans(storyText string, nouns []story.ProperNoun) string {
-	// Sort nouns by length in descending order to match longer phrases first.
-	sort.Slice(nouns, func(i, j int) bool {
-		return len(nouns[i].PhraseUsed) > len(nouns[j].PhraseUsed)
-	})
-
-	placeholderMap := make(map[string]story.ProperNoun)
-	currentStory := storyText
-	placeholderIndex := 0
-
-	// Pass 1: Replace all phrases with unique, safe placeholders.
-	for _, noun := range nouns {
-		re := regexp.MustCompile(fmt.Sprintf(`(?i)\b%s\b`, regexp.QuoteMeta(noun.PhraseUsed)))
-		
-		// Use ReplaceAllStringFunc to avoid replacing parts of already-made placeholders
-		// or HTML tags from previous replacements in this loop.
-		currentStory = re.ReplaceAllStringFunc(currentStory, func(match string) string {
-			// Check if we are about to replace something that is already a placeholder
-			if strings.HasPrefix(match, "__NOUN_PLACEHOLDER_") {
-				return match
-			}
-			
-			placeholder := fmt.Sprintf("__NOUN_PLACEHOLDER_%d__", placeholderIndex)
-			placeholderMap[placeholder] = noun
-			placeholderIndex++
-			return placeholder
-		})
-	}
-
-	// Pass 2: Replace placeholders with the final HTML.
-	finalStory := currentStory
-	for placeholder, noun := range placeholderMap {
-		wrapper := fmt.Sprintf(`<span class="proper-noun tooltip">%s<span class="tooltiptext">%s</span></span>`, noun.PhraseUsed, noun.Description)
-		finalStory = strings.Replace(finalStory, placeholder, wrapper, -1)
-	}
-
-	return finalStory
-}
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
 func parseAIResponse(response string) (AIResponse, error) {
@@ -169,43 +126,6 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 		prompt += prompts.FantasyPrompt
 	}
 	return prompt
-}
-
-// validateAndCorrectProperNouns checks if the phrase_used for a proper noun is in the story.
-// If not, it tries to correct it by using the canonical noun. If neither is found,
-// the proper noun is removed from the list to prevent broken tooltips.
-func validateAndCorrectProperNouns(aiResp *AIResponse) {
-	if aiResp.NewGameState == nil {
-		return
-	}
-
-	var validatedNouns []story.ProperNoun
-	storyTextLower := strings.ToLower(aiResp.StoryUpdate.Story)
-
-	for _, noun := range aiResp.NewGameState.ProperNouns {
-		phraseUsedLower := strings.ToLower(noun.PhraseUsed)
-		nounLower := strings.ToLower(noun.Noun)
-
-		// To be valid, the phrase must exist as a whole word or phrase in the story.
-		// We construct a regex to check for this. \b is a word boundary.
-		phraseRegex := regexp.MustCompile(`\b` + regexp.QuoteMeta(phraseUsedLower) + `\b`)
-		nounRegex := regexp.MustCompile(`\b` + regexp.QuoteMeta(nounLower) + `\b`)
-
-		if phraseRegex.MatchString(storyTextLower) {
-			// The phrase_used is in the story, so it's valid.
-			validatedNouns = append(validatedNouns, noun)
-		} else if nounRegex.MatchString(storyTextLower) {
-			// The phrase_used was incorrect, but the canonical noun is in the story.
-			// We'll correct the phrase_used and keep the noun.
-			log.Printf("Correcting proper noun: phrase_used '%s' not found, but noun '%s' was. Updating phrase_used.", noun.PhraseUsed, noun.Noun)
-			noun.PhraseUsed = noun.Noun // Correct the phrase to the canonical noun.
-			validatedNouns = append(validatedNouns, noun)
-		} else {
-			// Neither the phrase_used nor the noun is in the story. Discard it.
-			log.Printf("Discarding proper noun: phrase_used '%s' and noun '%s' not found in story.", noun.PhraseUsed, noun.Noun)
-		}
-	}
-	aiResp.NewGameState.ProperNouns = validatedNouns
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
@@ -308,8 +228,6 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validateAndCorrectProperNouns(&aiResp)
-
 	log.Printf("--- NEW GAME STATE (START) --- %s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
@@ -318,10 +236,10 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	sess.GameState = aiResp.NewGameState
 	// The FoundItems list will be empty on start, so no need to update it yet.
-	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, sess.GameState.ProperNouns)
+	storyText := aiResp.StoryUpdate.Story
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
-	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension).Render(context.Background(), w)
+	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -370,8 +288,6 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validateAndCorrectProperNouns(&aiResp)
-
 	log.Printf("--- NEW GAME STATE (GENERATE) --- %s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
@@ -395,7 +311,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	sess.GameState = aiResp.NewGameState
 	sess.GameState.ProperNouns = updatedNouns
 
-	storyText := addTooltipSpans(aiResp.StoryUpdate.Story, aiResp.NewGameState.ProperNouns) // Use nouns from this turn for tooltips
+	storyText := aiResp.StoryUpdate.Story // Use nouns from this turn for tooltips
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: storyText})
 	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
 }

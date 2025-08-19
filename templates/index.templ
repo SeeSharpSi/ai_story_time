@@ -142,17 +142,37 @@ templ Index(title string) {
 					100% { transform: rotate(360deg); }
 				}
 
-				.htmx-indicator { 
-					display: none; 
-					position: fixed;
-				}
-				.htmx-request.htmx-indicator {
-					display: block;
-					top: 50%;
-					left: 50%;
-					transform: translate(-50%, -50%);
-					z-index: 1000;
-				}
+                /* --- General Indicator Style (for #spinner) --- */
+                /* This provides a basic, centered position for any indicator. */
+                .htmx-indicator {
+                    display: none;
+                    position: fixed;
+                    z-index: 1000;
+                }
+
+                .htmx-request.htmx-indicator,
+                .htmx-indicator.htmx-request {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+
+
+                /* --- Overlay-Specific Style --- */
+                /* This targets ONLY our .with-overlay class to add the background
+                   and expand it to fill the screen. */
+                .htmx-request.with-overlay,
+                .with-overlay.htmx-request {
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    transform: none; /* Reset the default centering transform */
+                    background-color: rgba(37, 37, 38, 0.7);
+                }
 
 				#loading-indicator {
 					display: flex;
@@ -169,6 +189,9 @@ templ Index(title string) {
 					padding: 15px;
 					border-radius: 8px;
 					pointer-events: auto; /* Re-enable pointer events for the text */
+                    margin-left: 15px;
+                    margin-right: 15px;
+                    text-align: center;
 				}
 
 				/* Story view styles */
@@ -391,9 +414,9 @@ templ Index(title string) {
 					<span><a href="https://github.com/SeeSharpSi/ai_story_time" target="_blank">GitHub</a></span>
 				</footer>
 			</div>
-			<div id="loading-indicator" class="htmx-indicator">
+			<div id="loading-indicator" class="htmx-indicator with-overlay">
 				<div class="loader"></div>
-				<p class="loading-text">Starting your story. This can take up to 15 seconds.</p>
+				<p class="loading-text">Starting your story... <br>This can take up to 15 seconds</p>
 			</div>
 			<div id="spinner" class="htmx-indicator">
 				<div class="loader"></div>

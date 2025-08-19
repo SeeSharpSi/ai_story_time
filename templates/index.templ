@@ -46,9 +46,14 @@ templ Index(title string) {
 					--send-button-color: #c0392b; /* Pomegranate Red */
 				}
 
+				html, body {
+					overflow-x: hidden;
+				}
+
 				body { 
 					font-family: 'JetBrains Mono', monospace;
 					margin: 0; 
+					padding: 20px 15px; 
 					background-color: var(--background-color);
 					color: #d4d4d4;
 					display: flex; 
@@ -57,19 +62,18 @@ templ Index(title string) {
 					align-items: center; 
 					min-height: 100vh; 
 					transition: background-color 0.5s;
+					box-sizing: border-box;
 				}
-				#main-wrapper {
-					padding: 20px;
+				#main-content {
 					display: flex;
 					flex-direction: column;
 					justify-content: center;
 					align-items: center;
 					width: 100%;
-					box-sizing: border-box;
 				}
 				#story-container { 
 					max-width: 600px; 
-					width: 100%; 
+					width: 95%; 
 					background-color: #252526;
 					padding: 40px; 
 					border-radius: 8px; 
@@ -77,6 +81,7 @@ templ Index(title string) {
 					text-align: center; 
 					border: 1px solid #333333;
 					position: relative;
+					box-sizing: border-box;
 				}
 				h1, h3 {
 					color: #ffffff;
@@ -316,7 +321,7 @@ templ Index(title string) {
 			</style>
 		</head>
 		<body>
-			<div id="main-wrapper">
+			<div id="main-content">
 				<div id="story-container">
 					<h1>Welcome, Traveler</h1>
 					<div class="rules">
@@ -341,13 +346,13 @@ templ Index(title string) {
 						</ul>
 					</div>
 					<div class="genre-buttons">
-						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-wrapper" hx-swap="innerHTML" hx-indicator="#spinner">
+						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#spinner">
 							Fantasy
 						</button>
-						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-wrapper" hx-swap="innerHTML" hx-indicator="#spinner">
+						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#spinner">
 							Sci-Fi
 						</button>
-						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-wrapper" hx-swap="innerHTML" hx-indicator="#spinner">
+						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#spinner">
 							Historical Fiction
 						</button>
 					</div>

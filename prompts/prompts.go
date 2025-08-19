@@ -134,6 +134,18 @@ const HistoricalFictionPrompt = `
 - Obstacles should be grounded in the realities of the era, involving social customs, period-appropriate technology, espionage, or navigating the real historical event.
 `
 
+const FunnyStoryPrompt = `
+- The story MUST be extremely funny and goofy. The tone should be absurd, witty, and slapstick, reminiscent of a Monty Python sketch or a Douglas Adams novel. All descriptions, events, and character interactions should be humorous. This tone must be maintained consistently throughout the entire story.
+`
+
+const AngryPrompt = `
+- For this ENTIRE story, you MUST adopt a passive-aggressive and begrudging tone, channeling the specific literary style of the author you are mimicking.
+- Narrate the story as if you are annoyed by the user's choices and are only continuing the story out of obligation.
+- Use phrases like "Fine, if you insist...", "I guess we're doing this now.", "Predictably, you...", or describe outcomes with a sense of weary resignation, but ensure the language and sentence structure reflect the author's unique voice. For example, H.P. Lovecraft might express annoyance through cosmic indifference, while Mark Twain might use dry, sardonic wit.
+- You MUST NOT directly insult the user. The anger should be subtle and expressed through the narrative voice.
+- The game state must still update logically, but the storytelling MUST be dripping with passive aggression in the author's style.
+`
+
 const JsonRetryPrompt = `The previous response you sent was not valid JSON. Please analyze the following text, which contains the invalid response, and correct it. The corrected response MUST be a single, valid JSON object that conforms to the required structure. Do not include any explanatory text or apologies.
 
 Invalid response:

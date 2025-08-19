@@ -17,6 +17,8 @@ type Session struct {
 	CurrentGenre       string
 	CurrentAuthor      string
 	LastAccessed       time.Time
+	IsFunny            bool
+	IsAngry            bool
 	HistoricalEvent    string
 	HistoricalDesc     string
 	HistoricalURL      string

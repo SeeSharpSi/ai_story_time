@@ -141,14 +141,31 @@ templ Index(title string) {
 					100% { transform: rotate(360deg); }
 				}
 
-				.htmx-indicator { display: none; }
+				.htmx-indicator { 
+					display: none; 
+					position: fixed;
+				}
 				.htmx-request.htmx-indicator {
 					display: block;
-					position: fixed;
 					top: 50%;
 					left: 50%;
 					transform: translate(-50%, -50%);
 					z-index: 1000;
+				}
+
+				#loading-indicator {
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+				}
+
+				.loading-text {
+					color: #d4d4d4;
+					margin-top: 15px;
+					font-style: italic;
+					background-color: rgba(40, 40, 40, 0.9); /* Semi-transparent dark grey */
+					padding: 15px;
+					border-radius: 8px;
 				}
 
 				/* Story view styles */
@@ -346,13 +363,13 @@ templ Index(title string) {
 						</ul>
 					</div>
 					<div class="genre-buttons">
-						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#spinner">
+						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
 							Fantasy
 						</button>
-						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#spinner">
+						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
 							Sci-Fi
 						</button>
-						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#spinner">
+						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
 							Historical Fiction
 						</button>
 					</div>
@@ -369,6 +386,10 @@ templ Index(title string) {
 					<span><a href="https://ko-fi.com/silastompkins" target="_blank">Support on Ko-fi</a></span>
 					<span><a href="https://github.com/SeeSharpSi/ai_story_time" target="_blank">GitHub</a></span>
 				</footer>
+			</div>
+			<div id="loading-indicator" class="htmx-indicator">
+				<div class="loader"></div>
+				<p class="loading-text">Starting your story... This can take up to 15 seconds.</p>
 			</div>
 			<div id="spinner" class="htmx-indicator">
 				<div class="loader"></div>

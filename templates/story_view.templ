@@ -29,7 +29,7 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 			<input type="text" id="prompt" name="prompt" autofocus="autofocus" autocomplete="off" placeholder="What do you do?" style="width: 100%; margin-bottom: 10px;"/>
 			<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
 				<button type="submit">Send</button>
-				<span style="font-style: italic; color: #888; font-size: 0.8em;">{ strings.Title(difficulty) }</span>
+				<span style="font-style: italic; color: #666; font-size: 0.8em;">{ difficulty }</span>
 				<span id="word-count">0/15 words</span>
 			</div>
 		</form>
@@ -86,7 +86,7 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 				if (wordCount > 15) {
 					wordCountSpan.style.color = 'red';
 				} else {
-					wordCountSpan.style.color = '#666';
+					wordCountSpan.style.color = '#888';
 				}
 			});
 

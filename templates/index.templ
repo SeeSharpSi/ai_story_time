@@ -165,7 +165,7 @@ templ Index(title string) {
 					color: #d4d4d4;
 					margin-top: 15px;
 					font-style: italic;
-					background-color: rgba(40, 40, 40, 0.9); /* Semi-transparent dark grey */
+					background-color: rgba(40, 40, 40, 1); /* Semi-transparent dark grey */
 					padding: 15px;
 					border-radius: 8px;
 					pointer-events: auto; /* Re-enable pointer events for the text */
@@ -393,7 +393,7 @@ templ Index(title string) {
 			</div>
 			<div id="loading-indicator" class="htmx-indicator">
 				<div class="loader"></div>
-				<p class="loading-text">Starting your story... This can take up to 15 seconds.</p>
+				<p class="loading-text">Starting your story. This can take up to 15 seconds.</p>
 			</div>
 			<div id="spinner" class="htmx-indicator">
 				<div class="loader"></div>
@@ -402,6 +402,30 @@ templ Index(title string) {
 				document.body.addEventListener('htmx:afterSwap', function(evt) {
 					// Scroll the entire window to the bottom to show the new content
 					window.scrollTo(0, document.body.scrollHeight);
+				});
+
+				document.body.addEventListener('htmx:beforeRequest', function(evt) {
+					const trigger = evt.detail.elt;
+					// Check if the trigger is one of the genre buttons
+					if (trigger.classList.contains('fantasy-btn') || trigger.classList.contains('scifi-btn') || trigger.classList.contains('historical-fiction-btn')) {
+						const style = getComputedStyle(trigger);
+						const borderColor = style.borderColor;
+						
+						const loadingText = document.querySelector('#loading-indicator .loading-text');
+						if (loadingText) {
+							loadingText.style.border = `2px solid ${borderColor}`;
+						}
+
+						const loader = document.querySelector('#loading-indicator .loader');
+						if (loader) {
+							loader.style.borderTopColor = borderColor;
+						}
+
+						const spinner = document.querySelector('#spinner .loader');
+						if (loader) {
+							spinner.style.borderBottomColor = borderColor;
+						}
+					}
 				});
 			</script>
 		</body>

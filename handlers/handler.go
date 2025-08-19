@@ -115,6 +115,12 @@ func prettyPrint(v interface{}) string {
 func (h *Handler) buildSystemPrompt(s *session.Session) string {
 	prompt := fmt.Sprintf(prompts.BasePrompt, s.CurrentAuthor)
 
+	if s.IsFunny {
+		prompt += prompts.FunnyStoryPrompt
+	} else if s.IsAngry {
+		prompt += prompts.AngryPrompt
+	}
+
 	switch s.CurrentGenre {
 	case "fantasy":
 		prompt += prompts.FantasyPrompt
@@ -140,6 +146,18 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
+	sess.IsFunny = false // Reset funny flag for new stories
+	sess.IsAngry = false // Reset angry flag for new stories
+
+	// 10% chance for a funny story, but not for historical fiction
+	if genre != "historical-fiction" && rand.Intn(10) == 0 {
+		sess.IsFunny = true
+	}
+
+	// 10% chance for an angry story, but not if it's funny or historical fiction
+	if !sess.IsFunny && genre != "historical-fiction" && rand.Intn(10) == 0 {
+		sess.IsAngry = true
+	}
 
 	rand.Seed(time.Now().UnixNano())
 	author := authors[rand.Intn(len(authors))]
@@ -396,7 +414,13 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.SetFont("Times", "B", 36)
 	pdf.Cell(0, 80, "")
 	pdf.Ln(-1)
-	pdf.CellFormat(0, 10, "Your Story", "", 1, "C", false, 0, "")
+	title := "Your Story"
+	if sess.IsFunny {
+		title = "Your Very Funny Story"
+	} else if sess.IsAngry {
+		title = "An Annoying Story"
+	}
+	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")
 	pdf.Ln(10)
 
 	pdf.SetFont("Times", "I", 16)

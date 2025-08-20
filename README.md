@@ -5,7 +5,7 @@
 ---
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/131c1b8d-537a-4e93-87e8-940b57b83e6a" alt="A robot hand writing a fantasy story in a book" width=600>
+  <img src="https://raw.githubusercontent.com/SeeSharpSi/silasblog/refs/heads/main/static/mark_twain_scifi.png" alt="A robot hand writing a fantasy story in a book" width=600>
 </p>
 
 ---

@@ -1,23 +1,27 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/google/generative-ai-go/genai"
-	"github.com/jung-kurt/gofpdf"
 	"log"
 	"math/rand"
-	_ "modernc.org/sqlite"
 	"net/http"
+	"os"
 	"regexp"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
 	"story_ai/templates"
 	"strings"
+	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/jung-kurt/gofpdf"
+	_ "modernc.org/sqlite"
 )
 
 type Handler struct {
@@ -207,6 +211,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	sess.CurrentAuthor = author
 	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
+	go pingStatsService("start", nil)
 
 	var prompt string
 	var inspirationTitle, inspirationDesc string
@@ -350,6 +355,10 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
+	if aiResp.StoryUpdate.GameOver || aiResp.NewGameState.GameWon {
+		go pingStatsService("complete", nil)
+	}
+
 	// Merge the AI's proper nouns into the session's master list.
 	existingNouns := make(map[string]bool)
 	for _, noun := range sess.GameState.ProperNouns {
@@ -439,6 +448,7 @@ func writeHtmlToPdf(pdf *gofpdf.Fpdf, htmlStr string) {
 
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
+
 	pdf := gofpdf.New("P", "mm", "A4", "")
 
 	pdf.SetFooterFunc(func() {
@@ -532,11 +542,58 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var pdfBuffer bytes.Buffer
+	err := pdf.Output(&pdfBuffer)
+	if err != nil {
+		log.Printf("Error generating PDF to buffer: %v", err)
+		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
+		return
+	}
+
+	go pingStatsService("upload-pdf", pdfBuffer.Bytes())
+
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", "attachment; filename=story.pdf")
-	err := pdf.Output(w)
+	w.Write(pdfBuffer.Bytes())
+}
+
+// pingStatsService sends a POST request to the stats service.
+// For sending PDFs, the pdfData should contain the raw PDF bytes.
+func pingStatsService(endpoint string, pdfData []byte) {
+	statsServiceURL := os.Getenv("STATS_SERVICE_URL") // Get URL from environment variable
+	if statsServiceURL == "" {
+		// You can set a default for local testing
+		statsServiceURL = "http://localhost:8080"
+	}
+
+	url := fmt.Sprintf("%s/%s", statsServiceURL, endpoint)
+
+	var req *http.Request
+	var err error
+
+	if pdfData != nil {
+		req, err = http.NewRequest("POST", url, bytes.NewBuffer(pdfData))
+		req.Header.Set("Content-Type", "application/pdf")
+	} else {
+		req, err = http.NewRequest("POST", url, nil)
+	}
+
 	if err != nil {
-		log.Printf("Error generating PDF: %v", err)
-		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
+		log.Printf("Error creating request to stats service: %v", err)
+		return
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error pinging stats service at '%s': %v", endpoint, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Stats service returned non-OK status for '%s': %s", endpoint, resp.Status)
+	} else {
+		log.Printf("Successfully pinged stats service at '%s'", endpoint)
 	}
 }

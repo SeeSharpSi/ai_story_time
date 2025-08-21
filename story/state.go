@@ -9,17 +9,19 @@ type ProperNoun struct {
 
 // GameState represents the entire state of the game world.
 type GameState struct {
-	PlayerStatus  PlayerStatus   `json:"player_status"`
-	Inventory     []Item         `json:"inventory"`
-	Environment   Environment    `json:"environment"`
-	World         World          `json:"world"`
-	NPCs          []NPC          `json:"npcs"`
-	Puzzles       []Puzzle       `json:"active_puzzles_and_obstacles"`
-	ProperNouns   []ProperNoun   `json:"proper_nouns"`
-	Rules         Rules          `json:"rules"`
-	Climax        bool           `json:"climax"`
-	WinConditions []string       `json:"win_conditions,omitempty"`
-	GameWon       bool           `json:"game_won"`
+	PlayerStatus   PlayerStatus `json:"player_status"`
+	Inventory      []Item       `json:"inventory"`
+	Environment    Environment  `json:"environment"`
+	World          World        `json:"world"`
+	NPCs           []NPC        `json:"npcs"`
+	Puzzles        []Puzzle     `json:"active_puzzles_and_obstacles"`
+	ProperNouns    []ProperNoun `json:"proper_nouns"`
+	Rules          Rules        `json:"rules"`
+	Climax         bool         `json:"climax"`
+	WinConditions  []string     `json:"win_conditions,omitempty"`
+	LossConditions []string     `json:"loss_conditions,omitempty"`
+	GameWon        bool         `json:"game_won"`
+	GameLost       bool         `json:"game_lost"`
 }
 
 // PlayerStatus tracks the player's condition.
@@ -39,10 +41,10 @@ type Item struct {
 
 // Environment describes the current location and its interactive elements.
 type Environment struct {
-	LocationName string        `json:"location_name"`
-	Description  string        `json:"description"`
+	LocationName string            `json:"location_name"`
+	Description  string            `json:"description"`
 	Exits        map[string]string `json:"exits"`
-	WorldObjects []WorldObject `json:"world_objects"`
+	WorldObjects []WorldObject     `json:"world_objects"`
 }
 
 // WorldObject represents an interactable object in the environment.

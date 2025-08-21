@@ -155,6 +155,7 @@ templ Index(title string) {
                     display: flex;
                     justify-content: center;
                     align-items: center;
+                    flex-direction: column;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
@@ -175,9 +176,6 @@ templ Index(title string) {
                 }
 
 				#loading-indicator {
-					display: flex;
-					flex-direction: column;
-					align-items: center;
 					pointer-events: none; /* Allow clicks to pass through the container */
 				}
 
@@ -372,12 +370,13 @@ templ Index(title string) {
 						<ul>
 							<li>Read the story, then respond in 15 words or less</li>
 							<li>Your choices shape the narrative</li>
-							<li>Use quotes to speak, e.g., "Hello there"</li>
-							<li>Interact with anything you can imagine</li>
+							<li>Use quotes to speak, e.g. "Hello there"</li>
+							<li>Interact with anything and everything</li>
 						</ul>
 						<h3>Tips</h3>
 						<ul>
 							<li>Be creative to solve puzzles and uncover secrets</li>
+							<li>The story can end in success or failure</li>
 							<li>Difficulty impacts the severity of consequences</li>
 							<li>The world is dynamic; your actions matter</li>
 							<li>Hover/tap item names in your inventory for details</li>

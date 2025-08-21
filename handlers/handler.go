@@ -119,6 +119,10 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 		prompt += prompts.FunnyStoryPrompt
 	} else if s.IsAngry {
 		prompt += prompts.AngryPrompt
+	} else if s.IsXKCD {
+		prompt += prompts.XKCDPrompt
+	} else if s.IsStanley {
+		prompt += prompts.StanleyPrompt
 	}
 
 	switch s.CurrentGenre {
@@ -138,7 +142,6 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess, cookie := h.Manager.GetOrCreateSession(r)
 	http.SetCookie(w, &cookie)
 
-
 	genre := r.URL.Query().Get("genre")
 	consequenceModel := r.URL.Query().Get("consequence_model")
 	sess.GameState.Rules.ConsequenceModel = consequenceModel
@@ -146,21 +149,43 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
-	sess.IsFunny = false // Reset funny flag for new stories
-	sess.IsAngry = false // Reset angry flag for new stories
+	sess.IsFunny = false   // Reset funny flag for new stories
+	sess.IsAngry = false   // Reset angry flag for new stories
+	sess.IsXKCD = false    // Reset angry flag for new stories
+	sess.IsStanley = false // Reset angry flag for new stories
 
-	// 10% chance for a funny story, but not for historical fiction
-	if genre != "historical-fiction" && rand.Intn(10) == 0 {
-		sess.IsFunny = true
-	}
-
-	// 10% chance for an angry story, but not if it's funny or historical fiction
-	if !sess.IsFunny && genre != "historical-fiction" && rand.Intn(10) == 0 {
+	author := ""
+	// 5% chance for a funny story, but not for historical fiction
+	if genre != "historical-fiction" && rand.Intn(20) == 0 {
 		sess.IsAngry = true
+		print("angry\n")
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	author := authors[rand.Intn(len(authors))]
+	// 5% chance for an angry story, but not if it's funny or historical fiction
+	if !sess.IsAngry && genre != "historical-fiction" && rand.Intn(20) == 0 {
+		sess.IsFunny = true
+		author = "the Monty Python group"
+		print("funny\n")
+	}
+
+	// 5% chance for a story that's an XKCD web comic, but not if it's funny, angry, or historical fiction
+	if !sess.IsFunny && !sess.IsAngry && genre != "historical-fiction" && rand.Intn(20) == 0 {
+		sess.IsXKCD = true
+		author = "XKCD"
+		print("xkcd\n")
+	}
+
+	// 5% chance for a story that's like The Stanley Parable, but not if it's funny, angry, xkcd, or historical fiction
+	if !sess.IsFunny && !sess.IsAngry && !sess.IsXKCD && genre != "historical-fiction" && rand.Intn(20) == 0 {
+		sess.IsStanley = true
+		author = "the narrator from The Stanley Parable"
+		print("stan\n")
+	}
+
+	if author == "" {
+		rand.Seed(time.Now().UnixNano())
+		author = authors[rand.Intn(len(authors))]
+	}
 
 	if author == "Other" {
 		authorPrompt := "Name one famous author who is not on this list: William Faulkner, James Joyce, Mark Twain, Jack Kerouac, Kurt Vonnegut, H.P. Lovecraft, Edgar Allan Poe, J.R.R. Tolkien, Douglas Adams, Terry Pratchett. Respond with only the author's name."
@@ -257,7 +282,11 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	storyText := aiResp.StoryUpdate.Story
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
-	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel).Render(context.Background(), w)
+	placeholder := "What do you do?"
+	if sess.IsStanley {
+		placeholder = "What does Stanley do?"
+	}
+	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel, placeholder).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -416,10 +445,15 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(-1)
 	title := "Your Story"
 	if sess.IsFunny {
-		title = "Your Very Funny Story"
+		title = "A Decently Amusing Story"
 	} else if sess.IsAngry {
-		title = "An Annoying Story"
+		title = "You Somehow Angered the Narrator"
+	} else if sess.IsXKCD {
+		title = "A Bootleg XKCD comic"
+	} else if sess.IsStanley {
+		title = "Stanley's Story"
 	}
+
 	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")
 	pdf.Ln(10)
 

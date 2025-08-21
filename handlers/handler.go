@@ -5,8 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/jung-kurt/gofpdf"
 	"log"
 	"math/rand"
+	_ "modernc.org/sqlite"
 	"net/http"
 	"regexp"
 	"story_ai/prompts"
@@ -14,12 +18,6 @@ import (
 	"story_ai/story"
 	"story_ai/templates"
 	"strings"
-	"time"
-
-	"github.com/PuerkitoBio/goquery"
-	"github.com/google/generative-ai-go/genai"
-	"github.com/jung-kurt/gofpdf"
-	_ "modernc.org/sqlite"
 )
 
 type Handler struct {
@@ -49,7 +47,7 @@ type AIRequest struct {
 }
 
 var (
-	authors = []string{"James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "H.P. Lovecraft", "Edgar Allan Poe", "J.R.R. Tolkien", "Terry Pratchett", "Other"}
+	authors = []string{"James Joyce", "Mark Twain", "Jack Kerouac", "Kurt Vonnegut", "H.P. Lovecraft", "Edgar Allan Poe", "J.R.R. Tolkien", "Terry Pratchett"}
 	// Regex to find Markdown bolding (**text**)
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
@@ -119,6 +117,16 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 		prompt += prompts.FunnyStoryPrompt
 	} else if s.IsAngry {
 		prompt += prompts.AngryPrompt
+	} else if s.IsXKCD {
+		prompt += prompts.XKCDPrompt
+	} else if s.IsStanley {
+		prompt += prompts.StanleyPrompt
+	} else if s.IsGLaDOS {
+		prompt += prompts.GLaDOSPrompt
+	} else if s.IsKreia {
+		prompt += prompts.KreiaPrompt
+	} else if s.IsNietzsche {
+		prompt += prompts.NietzschePrompt
 	}
 
 	switch s.CurrentGenre {
@@ -138,7 +146,6 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess, cookie := h.Manager.GetOrCreateSession(r)
 	http.SetCookie(w, &cookie)
 
-
 	genre := r.URL.Query().Get("genre")
 	consequenceModel := r.URL.Query().Get("consequence_model")
 	sess.GameState.Rules.ConsequenceModel = consequenceModel
@@ -146,31 +153,58 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
-	sess.IsFunny = false // Reset funny flag for new stories
-	sess.IsAngry = false // Reset angry flag for new stories
+	sess.IsFunny = false     // Reset funny flag for new stories
+	sess.IsAngry = false     // Reset angry flag for new stories
+	sess.IsXKCD = false      // Reset angry flag for new stories
+	sess.IsStanley = false   // Reset angry flag for new stories
+	sess.IsGLaDOS = false    // Reset angry flag for new stories
+	sess.IsKreia = false     // Reset angry flag for new stories
+	sess.IsNietzsche = false // Reset angry flag for new stories
 
-	// 10% chance for a funny story, but not for historical fiction
-	if genre != "historical-fiction" && rand.Intn(10) == 0 {
-		sess.IsFunny = true
-	}
+	author := ""
+	narrative_dice := rand.Intn(60) // Roll a number from 0 to 99
 
-	// 10% chance for an angry story, but not if it's funny or historical fiction
-	if !sess.IsFunny && genre != "historical-fiction" && rand.Intn(10) == 0 {
+	switch {
+	// 5% chance for an Angry story (dice roll 0-4)
+	case narrative_dice < 5 && genre != "historical-fiction":
 		sess.IsAngry = true
+		author = "a very angry narrator"
+
+	// 5% chance for a Funny story (dice roll 5-9)
+	case narrative_dice < 10 && genre != "historical-fiction":
+		sess.IsFunny = true
+		author = "the Monty Python group"
+
+	// 5% chance for an XKCD story (dice roll 10-14)
+	case narrative_dice < 15 && genre != "historical-fiction":
+		sess.IsXKCD = true
+		author = "XKCD"
+
+	// 5% chance for a Stanley Parable story (dice roll 15-19)
+	case narrative_dice < 20 && genre != "historical-fiction":
+		sess.IsStanley = true
+		author = "the narrator from The Stanley Parable"
+
+	// 5% chance for a GLaDOS story (dice roll 20-24)
+	// This style is exclusive to the sci-fi genre
+	case narrative_dice < 25 && genre == "sci-fi":
+		sess.IsGLaDOS = true
+		author = "GLaDOS from Portal 2"
+
+	// 5% chance for a Kreia story (dice roll 25-29)
+	// This style is exclusive to the fantasy genre
+	case narrative_dice < 30 && genre == "fantasy":
+		sess.IsKreia = true
+		author = "Kreia from Knights of the Old Republic II"
+
+	// 5% chance for a Friedrich Nietzsche story (dice roll 30-34)
+	case narrative_dice < 35:
+		sess.IsNietzsche = true
+		author = "Friedrich Nietzsche"
+	default:
+		author = authors[rand.Intn(len(authors))]
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	author := authors[rand.Intn(len(authors))]
-
-	if author == "Other" {
-		authorPrompt := "Name one famous author who is not on this list: William Faulkner, James Joyce, Mark Twain, Jack Kerouac, Kurt Vonnegut, H.P. Lovecraft, Edgar Allan Poe, J.R.R. Tolkien, Douglas Adams, Terry Pratchett. Respond with only the author's name."
-		resp, err := h.Model.GenerateContent(context.Background(), genai.Text(authorPrompt))
-		if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-			author = "Mark Twain"
-		} else {
-			author = string(resp.Candidates[0].Content.Parts[0].(genai.Text))
-		}
-	}
 	sess.CurrentAuthor = author
 	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
 
@@ -257,7 +291,11 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	storyText := aiResp.StoryUpdate.Story
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
-	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel).Render(context.Background(), w)
+	placeholder := "What do you do?"
+	if sess.IsStanley {
+		placeholder = "What does Stanley do?"
+	}
+	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel, placeholder).Render(context.Background(), w)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -416,10 +454,21 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(-1)
 	title := "Your Story"
 	if sess.IsFunny {
-		title = "Your Very Funny Story"
+		title = "A Decently Amusing Story"
 	} else if sess.IsAngry {
-		title = "An Annoying Story"
+		title = "The Tale I Was Forced to Tell"
+	} else if sess.IsXKCD {
+		title = "Hypothesis: A Story"
+	} else if sess.IsStanley {
+		title = "The Story of a Man Named Stanley"
+	} else if sess.IsGLaDOS {
+		title = "A Mandatory Enrichment Activity"
+	} else if sess.IsKreia {
+		title = "A Lesson in Consequences"
+	} else if sess.IsNietzsche {
+		title = "Thus Spoke the Traveler"
 	}
+
 	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")
 	pdf.Ln(10)
 

@@ -21,6 +21,9 @@ type Session struct {
 	IsAngry           bool
 	IsXKCD            bool
 	IsStanley         bool
+	IsGLaDOS          bool
+	IsKreia           bool
+	IsNietzsche       bool
 	HistoricalEvent   string
 	HistoricalDesc    string
 	HistoricalURL     string

@@ -1,23 +1,27 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/google/generative-ai-go/genai"
-	"github.com/jung-kurt/gofpdf"
 	"log"
 	"math/rand"
-	_ "modernc.org/sqlite"
 	"net/http"
+	"os"
 	"regexp"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
 	"story_ai/templates"
 	"strings"
+	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/jung-kurt/gofpdf"
+	_ "modernc.org/sqlite"
 )
 
 type Handler struct {
@@ -127,6 +131,16 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 		prompt += prompts.KreiaPrompt
 	} else if s.IsNietzsche {
 		prompt += prompts.NietzschePrompt
+	} else if s.IsJohnBunyan {
+		prompt += prompts.BunyanPrompt
+	} else if s.IsSocrates {
+		prompt += prompts.SocraticPrompt
+	} else if s.IsTheHistorian {
+		prompt += prompts.HistorianPrompt
+	} else if s.IsRossRamsay {
+		prompt += prompts.RossRamsayPrompt
+	} else if s.IsTzuGump {
+		prompt += prompts.SunTzuGumpPrompt
 	}
 
 	switch s.CurrentGenre {
@@ -153,60 +167,94 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
-	sess.IsFunny = false     // Reset funny flag for new stories
-	sess.IsAngry = false     // Reset angry flag for new stories
-	sess.IsXKCD = false      // Reset angry flag for new stories
-	sess.IsStanley = false   // Reset angry flag for new stories
-	sess.IsGLaDOS = false    // Reset angry flag for new stories
-	sess.IsKreia = false     // Reset angry flag for new stories
-	sess.IsNietzsche = false // Reset angry flag for new stories
+	sess.IsFunny = false        // Reset flag for new stories
+	sess.IsAngry = false        // Reset flag for new stories
+	sess.IsXKCD = false         // Reset flag for new stories
+	sess.IsStanley = false      // Reset flag for new stories
+	sess.IsGLaDOS = false       // Reset flag for new stories
+	sess.IsKreia = false        // Reset flag for new stories
+	sess.IsNietzsche = false    // Reset flag for new stories
+	sess.IsJohnBunyan = false   // Reset flag for new stories
+	sess.IsSocrates = false     // Reset flag for new stories
+	sess.IsTheHistorian = false // Reset flag for new stories
+	sess.IsRossRamsay = false   // Reset flag for new stories
+	sess.IsTzuGump = false      // Reset flag for new stories
 
 	author := ""
-	narrative_dice := rand.Intn(60) // Roll a number from 0 to 99
+	narrative_dice := rand.Intn(13) // Roll a number from 0 to 12
 
 	switch {
 	// 5% chance for an Angry story (dice roll 0-4)
-	case narrative_dice < 5 && genre != "historical-fiction":
+	case narrative_dice < 1:
 		sess.IsAngry = true
 		author = "a very angry narrator"
 
 	// 5% chance for a Funny story (dice roll 5-9)
-	case narrative_dice < 10 && genre != "historical-fiction":
+	case narrative_dice < 2 && genre != "historical-fiction":
 		sess.IsFunny = true
 		author = "the Monty Python group"
 
 	// 5% chance for an XKCD story (dice roll 10-14)
-	case narrative_dice < 15 && genre != "historical-fiction":
+	// This style is exclusive to the sci-fi genre
+	case narrative_dice < 3 && genre == "sci-fi":
 		sess.IsXKCD = true
 		author = "XKCD"
 
 	// 5% chance for a Stanley Parable story (dice roll 15-19)
-	case narrative_dice < 20 && genre != "historical-fiction":
+	case narrative_dice < 4:
 		sess.IsStanley = true
 		author = "the narrator from The Stanley Parable"
 
 	// 5% chance for a GLaDOS story (dice roll 20-24)
 	// This style is exclusive to the sci-fi genre
-	case narrative_dice < 25 && genre == "sci-fi":
+	case narrative_dice < 5 && genre == "sci-fi":
 		sess.IsGLaDOS = true
 		author = "GLaDOS from Portal 2"
 
-	// 5% chance for a Kreia story (dice roll 25-29)
+	// 5% chance for a Kreia story (dice roll 20-24)
 	// This style is exclusive to the fantasy genre
-	case narrative_dice < 30 && genre == "fantasy":
+	case narrative_dice < 5 && genre == "fantasy":
 		sess.IsKreia = true
 		author = "Kreia from Knights of the Old Republic II"
 
-	// 5% chance for a Friedrich Nietzsche story (dice roll 30-34)
-	case narrative_dice < 35:
+	// 5% chance for an immortal chronicler story (dice roll 20-24)
+	// This style is exclusive to the historical fiction genre
+	case narrative_dice < 5 && genre == "historical-fiction":
+		sess.IsTheHistorian = true
+		author = "The Historian"
+
+	// 5% chance for a Friedrich Nietzsche story (dice roll 25-29)
+	case narrative_dice < 6:
 		sess.IsNietzsche = true
 		author = "Friedrich Nietzsche"
+
+	// 5% chance for a John Bunyan story (dice roll 30-34)
+	case narrative_dice < 7:
+		sess.IsJohnBunyan = true
+		author = "John Bunyan"
+
+	// 5% chance for a Socrates story (dice roll 35-39)
+	case narrative_dice < 8:
+		sess.IsSocrates = true
+		author = "Socrates"
+
+	// 5% chance for a duo narration w/ Bob Ross & Emrey (dice roll 40-44)
+	case narrative_dice < 9:
+		sess.IsRossRamsay = true
+		author = "Ross & Ramsay"
+
+	// 5% chance for a duo narration w/ Sun Tzu & Forrest Grump (dice roll 45-49)
+	case narrative_dice < 10:
+		sess.IsTzuGump = true
+		author = "Sun Tzu & Forrest Gump"
+
 	default:
 		author = authors[rand.Intn(len(authors))]
 	}
 
 	sess.CurrentAuthor = author
 	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
+	go pingStatsService("start", nil)
 
 	var prompt string
 	var inspirationTitle, inspirationDesc string
@@ -350,6 +398,10 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
 	}
 
+	if aiResp.StoryUpdate.GameOver || aiResp.NewGameState.GameWon {
+		go pingStatsService("complete", nil)
+	}
+
 	// Merge the AI's proper nouns into the session's master list.
 	existingNouns := make(map[string]bool)
 	for _, noun := range sess.GameState.ProperNouns {
@@ -386,6 +438,11 @@ func writeHtmlToPdf(pdf *gofpdf.Fpdf, htmlStr string) {
 		s.Contents().Each(func(i int, content *goquery.Selection) {
 			// Skip tooltiptext spans entirely in the main processing loop
 			if content.HasClass("tooltiptext") {
+				return
+			}
+
+			if goquery.NodeName(content) == "br" {
+				pdf.Ln(6)
 				return
 			}
 
@@ -439,6 +496,7 @@ func writeHtmlToPdf(pdf *gofpdf.Fpdf, htmlStr string) {
 
 func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
+
 	pdf := gofpdf.New("P", "mm", "A4", "")
 
 	pdf.SetFooterFunc(func() {
@@ -467,6 +525,16 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		title = "A Lesson in Consequences"
 	} else if sess.IsNietzsche {
 		title = "Thus Spoke the Traveler"
+	} else if sess.IsJohnBunyan {
+		title = "The Pilgrim's Burden"
+	} else if sess.IsSocrates {
+		title = "An Unexamined Life"
+	} else if sess.IsTheHistorian {
+		title = "The Human Thing"
+	} else if sess.IsRossRamsay {
+		title = "The Happy Little Scallop is RAW!"
+	} else if sess.IsTzuGump {
+		title = "The Unwitting Strategist"
 	}
 
 	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")
@@ -532,11 +600,58 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var pdfBuffer bytes.Buffer
+	err := pdf.Output(&pdfBuffer)
+	if err != nil {
+		log.Printf("Error generating PDF to buffer: %v", err)
+		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
+		return
+	}
+
+	go pingStatsService("upload-pdf", pdfBuffer.Bytes())
+
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", "attachment; filename=story.pdf")
-	err := pdf.Output(w)
+	w.Write(pdfBuffer.Bytes())
+}
+
+// pingStatsService sends a POST request to the stats service.
+// For sending PDFs, the pdfData should contain the raw PDF bytes.
+func pingStatsService(endpoint string, pdfData []byte) {
+	statsServiceURL := os.Getenv("STATS_SERVICE_URL") // Get URL from environment variable
+	if statsServiceURL == "" {
+		// You can set a default for local testing
+		statsServiceURL = "http://localhost:8080"
+	}
+
+	url := fmt.Sprintf("%s/%s", statsServiceURL, endpoint)
+
+	var req *http.Request
+	var err error
+
+	if pdfData != nil {
+		req, err = http.NewRequest("POST", url, bytes.NewBuffer(pdfData))
+		req.Header.Set("Content-Type", "application/pdf")
+	} else {
+		req, err = http.NewRequest("POST", url, nil)
+	}
+
 	if err != nil {
-		log.Printf("Error generating PDF: %v", err)
-		http.Error(w, "Failed to generate PDF.", http.StatusInternalServerError)
+		log.Printf("Error creating request to stats service: %v", err)
+		return
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error pinging stats service at '%s': %v", endpoint, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Stats service returned non-OK status for '%s': %s", endpoint, resp.Status)
+	} else {
+		log.Printf("Successfully pinged stats service at '%s'", endpoint)
 	}
 }

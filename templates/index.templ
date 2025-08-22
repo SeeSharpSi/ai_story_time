@@ -313,7 +313,7 @@ templ Index(title string) {
 				/* Tooltip Styles */
 				.tooltip {
 					position: relative;
-					display: inline; /* Allow the span to wrap with text */
+					display: inline; 
 					cursor: help;
 				}
 
@@ -334,13 +334,19 @@ templ Index(title string) {
 					transition: opacity 0.3s;
 				}
 
-				.tooltip:hover .tooltiptext {
-					visibility: visible;
-					opacity: 1;
+                .tooltip .tooltiptext.tooltip-bottom {
+					bottom: auto; 
+					top: 125%; 
 				}
 
+				.tooltip:hover .tooltiptext,
+                .tooltip:focus .tooltiptext {
+                    visibility: visible;
+                    opacity: 1;
+                }
+
 				.proper-noun {
-					color: #e2c8b9;
+					color: #d08770; /* Coral Rose */
 					cursor: help;
 				}
 				.footer {
@@ -385,7 +391,7 @@ templ Index(title string) {
 						<ul>
 							<li><span style="color: #a6e22e;">Green:</span> Item acquired</li>
 							<li><span style="color: #f92672;">Red:</span> Item lost</li>
-							<li><span style="color: #e2c8b9;">Cashmere:</span> Hover/tap for details</li>
+							<li><span style="color: #e2c8b9;">Coral Rose:</span> Hover/tap for details</li>
 						</ul>
 					</div>
 					<div class="genre-buttons">
@@ -415,7 +421,7 @@ templ Index(title string) {
 			</div>
 			<div id="loading-indicator" class="htmx-indicator with-overlay">
 				<div class="loader"></div>
-				<p class="loading-text">Starting your story... <br>This can take up to 20 seconds</p>
+				<p class="loading-text">Starting your story... <br/>This can take up to 20 seconds</p>
 			</div>
 			<div id="spinner" class="htmx-indicator">
 				<div class="loader"></div>
@@ -449,6 +455,45 @@ templ Index(title string) {
 						}
 					}
 				});
+
+                // This function handles the dynamic positioning of tooltips.
+				function positionTooltip(event) {
+					const tooltipContainer = event.target.closest('.tooltip');
+					if (!tooltipContainer) {
+						return;
+					}
+
+					const tooltipText = tooltipContainer.querySelector('.tooltiptext');
+					if (!tooltipText) {
+						return;
+					}
+
+					// Make it briefly visible but off-screen to calculate its height
+					tooltipText.style.visibility = 'hidden';
+					tooltipText.style.display = 'block';
+					const tooltipHeight = tooltipText.offsetHeight;
+					tooltipText.style.display = '';
+					tooltipText.style.visibility = '';
+
+
+					const containerRect = tooltipContainer.getBoundingClientRect();
+
+					// Check if there's enough space above the element in the viewport
+					// We add a small buffer (e.g., 10px) for safety
+					if (containerRect.top < (tooltipHeight + 10)) {
+						// If not enough space above, show it below
+						tooltipText.classList.add('tooltip-bottom');
+					} else {
+						// Otherwise, show it above (its default position)
+						tooltipText.classList.remove('tooltip-bottom');
+					}
+				}
+
+                // Use event delegation on the body to handle tooltips added by HTMX.
+				// 'mouseenter' is for desktop hover.
+				// 'focusin' is for mobile tap and keyboard navigation (thanks to tabindex="0").
+				document.body.addEventListener('mouseenter', positionTooltip, true);
+				document.body.addEventListener('focusin', positionTooltip, true);
 			</script>
 		</body>
 	</html>

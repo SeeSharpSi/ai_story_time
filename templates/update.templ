@@ -27,7 +27,7 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 		<div class="inventory-items">
 			for i, item := range inventory {
 				<div class="inventory-item">
-					<span class="item-name tooltip">{ item.Name }
+					<span class="item-name tooltip" tabindex="0">{ item.Name }
 						<span class="tooltiptext">{ item.Description }</span>
 					</span>
 					<span class="item-properties">{ FormatProperties(item.Properties) }</span>

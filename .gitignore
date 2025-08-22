@@ -2,3 +2,4 @@
 deploy.sh
 app.log
 .env_prod
+scripts

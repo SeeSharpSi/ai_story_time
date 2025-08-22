@@ -184,7 +184,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.IsDrSeuss = false      // Reset flag for new stories
 
 	author := ""
-	narrative_dice := rand.Intn(1000) // Roll a number from 0 to 12
+	narrative_dice := rand.Intn(13) // Roll a number from 0 to 12
 
 	switch {
 	case narrative_dice < 1:
@@ -239,7 +239,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		sess.IsTzuGump = true
 		author = "Sun Tzu & Forrest Gump"
 
-	case narrative_dice < 1000 && genre != "historical-fiction":
+	case narrative_dice < 11 && genre != "historical-fiction":
 		sess.IsDrSeuss = true
 		author = "Dr. Seuss"
 

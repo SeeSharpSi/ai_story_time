@@ -27,7 +27,7 @@ func main() {
 
 	model := client.GenerativeModel("gemini-2.5-flash")
 	temp := float32(0.9)
-	//tokens := int32(10000)
+	//tokens := int32(2048)
 	model.GenerationConfig = genai.GenerationConfig{
 		//MaxOutputTokens: &tokens,
 		Temperature:     &temp,

@@ -24,6 +24,11 @@ type Session struct {
 	IsGLaDOS          bool
 	IsKreia           bool
 	IsNietzsche       bool
+	IsJohnBunyan      bool
+	IsSocrates        bool
+	IsTheHistorian    bool
+	IsRossRamsay      bool
+	IsTzuGump         bool
 	HistoricalEvent   string
 	HistoricalDesc    string
 	HistoricalURL     string

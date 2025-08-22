@@ -29,6 +29,7 @@ type Session struct {
 	IsTheHistorian    bool
 	IsRossRamsay      bool
 	IsTzuGump         bool
+	IsDrSeuss         bool
 	HistoricalEvent   string
 	HistoricalDesc    string
 	HistoricalURL     string

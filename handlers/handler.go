@@ -141,6 +141,8 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 		prompt += prompts.RossRamsayPrompt
 	} else if s.IsTzuGump {
 		prompt += prompts.SunTzuGumpPrompt
+	} else if s.IsDrSeuss {
+		prompt += prompts.DrSeussPrompt
 	}
 
 	switch s.CurrentGenre {
@@ -179,74 +181,67 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.IsTheHistorian = false // Reset flag for new stories
 	sess.IsRossRamsay = false   // Reset flag for new stories
 	sess.IsTzuGump = false      // Reset flag for new stories
+	sess.IsDrSeuss = false      // Reset flag for new stories
 
 	author := ""
-	narrative_dice := rand.Intn(13) // Roll a number from 0 to 12
+	narrative_dice := rand.Intn(1000) // Roll a number from 0 to 12
 
 	switch {
-	// 5% chance for an Angry story (dice roll 0-4)
 	case narrative_dice < 1:
 		sess.IsAngry = true
 		author = "a very angry narrator"
 
-	// 5% chance for a Funny story (dice roll 5-9)
 	case narrative_dice < 2 && genre != "historical-fiction":
 		sess.IsFunny = true
 		author = "the Monty Python group"
 
-	// 5% chance for an XKCD story (dice roll 10-14)
 	// This style is exclusive to the sci-fi genre
 	case narrative_dice < 3 && genre == "sci-fi":
 		sess.IsXKCD = true
 		author = "XKCD"
 
-	// 5% chance for a Stanley Parable story (dice roll 15-19)
 	case narrative_dice < 4:
 		sess.IsStanley = true
-		author = "the narrator from The Stanley Parable"
+		author = "The Stanley Parable"
 
-	// 5% chance for a GLaDOS story (dice roll 20-24)
 	// This style is exclusive to the sci-fi genre
 	case narrative_dice < 5 && genre == "sci-fi":
 		sess.IsGLaDOS = true
 		author = "GLaDOS from Portal 2"
 
-	// 5% chance for a Kreia story (dice roll 20-24)
 	// This style is exclusive to the fantasy genre
 	case narrative_dice < 5 && genre == "fantasy":
 		sess.IsKreia = true
 		author = "Kreia from Knights of the Old Republic II"
 
-	// 5% chance for an immortal chronicler story (dice roll 20-24)
 	// This style is exclusive to the historical fiction genre
 	case narrative_dice < 5 && genre == "historical-fiction":
 		sess.IsTheHistorian = true
 		author = "The Historian"
 
-	// 5% chance for a Friedrich Nietzsche story (dice roll 25-29)
 	case narrative_dice < 6:
 		sess.IsNietzsche = true
 		author = "Friedrich Nietzsche"
 
-	// 5% chance for a John Bunyan story (dice roll 30-34)
 	case narrative_dice < 7:
 		sess.IsJohnBunyan = true
 		author = "John Bunyan"
 
-	// 5% chance for a Socrates story (dice roll 35-39)
 	case narrative_dice < 8:
 		sess.IsSocrates = true
 		author = "Socrates"
 
-	// 5% chance for a duo narration w/ Bob Ross & Emrey (dice roll 40-44)
 	case narrative_dice < 9:
 		sess.IsRossRamsay = true
 		author = "Ross & Ramsay"
 
-	// 5% chance for a duo narration w/ Sun Tzu & Forrest Grump (dice roll 45-49)
 	case narrative_dice < 10:
 		sess.IsTzuGump = true
 		author = "Sun Tzu & Forrest Gump"
+
+	case narrative_dice < 1000 && genre != "historical-fiction":
+		sess.IsDrSeuss = true
+		author = "Dr. Seuss"
 
 	default:
 		author = authors[rand.Intn(len(authors))]
@@ -337,11 +332,16 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.GameState = aiResp.NewGameState
 	// The FoundItems list will be empty on start, so no need to update it yet.
 	storyText := aiResp.StoryUpdate.Story
+	if sess.IsStanley && !strings.HasPrefix(storyText, "This is the story of a man named Stanley.") {
+		storyText = "This is the story of a man named Stanley.<br><br>" + storyText
+	}
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
 	placeholder := "What do you do?"
 	if sess.IsStanley {
 		placeholder = "What does Stanley do?"
+	} else if sess.IsDrSeuss {
+		placeholder = "Your turn to play! What's next today?"
 	}
 	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel, placeholder).Render(context.Background(), w)
 }
@@ -535,6 +535,8 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		title = "The Happy Little Scallop is RAW!"
 	} else if sess.IsTzuGump {
 		title = "The Unwitting Strategist"
+	} else if sess.IsDrSeuss {
+		title = "Oh, the Things You Will Find!"
 	}
 
 	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")

@@ -11,16 +11,20 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"story_ai/metrics"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
 	"story_ai/templates"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/jung-kurt/gofpdf"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	_ "modernc.org/sqlite"
 )
 
@@ -59,6 +63,57 @@ var (
 	// Regex to fix punctuation outside of span tags
 	spanPunctuationRegex = regexp.MustCompile(`(<span\s+class="[^"]*">(?:.|\n)*?)(</span>)([.,?!])`)
 )
+
+// validateUserAction validates user input for security and appropriateness
+func validateUserAction(action string) error {
+	// Check length constraints
+	if len(action) == 0 {
+		return fmt.Errorf("action cannot be empty")
+	}
+	if len(action) > 500 {
+		return fmt.Errorf("action must be 500 characters or less")
+	}
+	if len(strings.Fields(action)) > 15 {
+		return fmt.Errorf("action must be 15 words or less")
+	}
+
+	// Check for potentially harmful content
+	dangerousPatterns := []string{
+		`<script`, `javascript:`, `on\w+\s*=`, `<iframe`, `<object`, `<embed`,
+		`eval\s*\(`, `document\.`, `window\.`, `alert\s*\(`, `prompt\s*\(`,
+		`confirm\s*\(`, `setTimeout\s*\(`, `setInterval\s*\(`,
+	}
+
+	actionLower := strings.ToLower(action)
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(actionLower, pattern) {
+			return fmt.Errorf("action contains potentially harmful content")
+		}
+	}
+
+	// Check for excessive special characters
+	specialChars := 0
+	for _, char := range action {
+		if !unicode.IsLetter(char) && !unicode.IsDigit(char) && !unicode.IsSpace(char) && !unicode.IsPunct(char) {
+			specialChars++
+		}
+	}
+	if specialChars > len(action)/10 { // More than 10% special characters
+		return fmt.Errorf("action contains too many special characters")
+	}
+
+	return nil
+}
+
+// contains checks if a slice contains a specific string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
 func parseAIResponse(response string) (AIResponse, error) {
@@ -173,11 +228,31 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	sess, cookie := h.Manager.GetOrCreateSession(r)
 	http.SetCookie(w, &cookie)
 
 	genre := r.URL.Query().Get("genre")
 	consequenceModel := r.URL.Query().Get("consequence_model")
+
+	// Validate genre parameter
+	validGenres := []string{"fantasy", "sci-fi", "historical-fiction"}
+	if genre != "" && !contains(validGenres, genre) {
+		metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, false)
+		err := fmt.Errorf("invalid genre parameter: %s", genre)
+		handleStartStoryError(w, r, err, ErrorTypeValidation)
+		return
+	}
+
+	// Validate consequence model parameter
+	validModels := []string{"exploratory", "challenging", "punishing"}
+	if consequenceModel != "" && !contains(validModels, consequenceModel) {
+		metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, false)
+		err := fmt.Errorf("invalid consequence_model parameter: %s", consequenceModel)
+		handleStartStoryError(w, r, err, ErrorTypeValidation)
+		return
+	}
+
 	sess.GameState.Rules.ConsequenceModel = consequenceModel
 	sess.CurrentGenre = genre
 
@@ -385,15 +460,19 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel, placeholder).Render(context.Background(), w)
+
+	// Record successful story generation metrics
+	metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, true)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	sess, _ := h.Manager.GetOrCreateSession(r)
 	userAction := r.FormValue("prompt")
 
-	if len(strings.Fields(userAction)) > 15 {
-		// Return an error to the user without calling the AI
-		http.Error(w, "Response must be 15 words or less.", http.StatusBadRequest)
+	// Input validation
+	if err := validateUserAction(userAction); err != nil {
+		handleValidationError(w, r, sess, userAction, err)
 		return
 	}
 
@@ -425,17 +504,13 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		errorPage := story.StoryPage{Prompt: userAction, Response: "[The AI's response was blocked. Try something else.]"}
-		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
+		handleAIError(w, r, sess, userAction, err, startTime)
 		return
 	}
 
 	aiResp, err := h.parseAndRetryAIResponse(r.Context(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
-		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
+		handleSystemError(w, r, sess, userAction, err, ErrorTypeAI)
 		return
 	}
 
@@ -468,6 +543,11 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	storyText := aiResp.StoryUpdate.Story // Use nouns from this turn for tooltips
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: storyText})
+
+	// Record successful AI API usage and user activity metrics
+	metrics.RecordAPIUsage("gemini", 0, time.Since(startTime), true) // Token count would need to be extracted from AI response
+	metrics.RecordUserActivity("generate_response", sess.CurrentGenre, time.Since(startTime))
+
 	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
 }
 
@@ -599,14 +679,14 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 
 	pdf.SetFont("Times", "I", 16)
 	subtitle := fmt.Sprintf("An AI-generated %s tale in the style of %s",
-		strings.Title(sess.CurrentGenre),
+		cases.Title(language.English).String(sess.CurrentGenre),
 		sess.CurrentAuthor,
 	)
 	pdf.CellFormat(0, 10, subtitle, "", 1, "C", false, 0, "")
 	pdf.Ln(5)
 
 	pdf.SetFont("Times", "", 12)
-	difficulty := fmt.Sprintf("Difficulty: %s", strings.Title(sess.GameState.Rules.ConsequenceModel))
+	difficulty := fmt.Sprintf("Difficulty: %s", cases.Title(language.English).String(sess.GameState.Rules.ConsequenceModel))
 	pdf.CellFormat(0, 10, difficulty, "", 1, "C", false, 0, "")
 
 	if sess.CurrentGenre == "historical-fiction" {

@@ -133,14 +133,14 @@ func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory [
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" style=\"width: 100%; margin-bottom: 10px;\"><div style=\"display: flex; justify-content: space-between; align-items: center; width: 100%;\"><button type=\"submit\">Send</button> <span style=\"font-style: italic; color: #666; font-size: 0.8em;\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" style=\"width: 100%; margin-bottom: 10px;\"><div style=\"display: flex; justify-content: space-between; align-items: center; width: 100%;\"><button type=\"submit\"><span class=\"button-text\">Send</span> <span class=\"button-loading\" style=\"display: none;\">Generating...</span></button> <span style=\"font-style: italic; color: #666; font-size: 0.8em;\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(difficulty)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 32, Col: 81}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 35, Col: 81}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -158,7 +158,7 @@ func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory [
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(item.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 42, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 45, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -171,7 +171,7 @@ func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory [
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(item.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 43, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 46, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -184,7 +184,7 @@ func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory [
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(FormatProperties(item.Properties))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 45, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/story_view.templ`, Line: 48, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -201,7 +201,7 @@ func StoryView(initialStory string, playerStatus story.PlayerStatus, inventory [
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div></div><style>\n\t\t\t.inventory-item {\n\t\t\t\tdisplay: flex;\n\t\t\t\tjustify-content: space-between;\n\t\t\t\talign-items: center;\n\t\t\t\tpadding: 8px 0;\n\t\t\t}\n\t\t\t.item-properties {\n\t\t\t\tfont-style: italic;\n\t\t\t\tcolor: #888; /* Faint color */\n                text-align: right;\n\t\t\t}\n\t\t\t.inventory-divider {\n\t\t\t\tborder: 0;\n\t\t\t\theight: 1px;\n\t\t\t\tbackground-color: #444;\n\t\t\t\tmargin: 0;\n\t\t\t}\n\t\t</style><script>\n\t\t\tconst promptInput = document.getElementById('prompt');\n\t\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\t\tconst responseForm = document.getElementById('response-form');\n\n\t\t\tpromptInput.addEventListener('input', () => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tlet wordCount = words.length;\n\t\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\t\twordCount = 0;\n\t\t\t\t}\n\t\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\t\tif (wordCount > 15) {\n\t\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t\t} else {\n\t\t\t\t\twordCountSpan.style.color = '#888';\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tif (words.length > 15) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t\tif (evt.detail.successful) {\n\t\t\t\t\tpromptInput.value = '';\n\t\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div></div><style>\n\t\t\t.inventory-item {\n\t\t\t\tdisplay: flex;\n\t\t\t\tjustify-content: space-between;\n\t\t\t\talign-items: center;\n\t\t\t\tpadding: 8px 0;\n\t\t\t}\n\t\t\t.item-properties {\n\t\t\t\tfont-style: italic;\n\t\t\t\tcolor: #888; /* Faint color */\n                \ttext-align: right;\n\t\t\t}\n\t\t\t.inventory-divider {\n\t\t\t\tborder: 0;\n\t\t\t\theight: 1px;\n\t\t\t\tbackground-color: #444;\n\t\t\t\tmargin: 0;\n\t\t\t}\n\n\t\t\t#response-form button:disabled {\n\t\t\t\topacity: 0.6;\n\t\t\t\tcursor: not-allowed;\n\t\t\t}\n\n\t\t\t.button-loading {\n\t\t\t\tdisplay: flex;\n\t\t\t\talign-items: center;\n\t\t\t\tgap: 8px;\n\t\t\t}\n\t\t</style><script>\n\t\t\tconst promptInput = document.getElementById('prompt');\n\t\t\tconst wordCountSpan = document.getElementById('word-count');\n\t\t\tconst responseForm = document.getElementById('response-form');\n\n\t\t\tpromptInput.addEventListener('input', () => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tlet wordCount = words.length;\n\t\t\t\tif (promptInput.value.trim() === \"\") {\n\t\t\t\t\twordCount = 0;\n\t\t\t\t}\n\t\t\t\twordCountSpan.textContent = `${wordCount}/15 words`;\n\t\t\t\tif (wordCount > 15) {\n\t\t\t\t\twordCountSpan.style.color = 'red';\n\t\t\t\t} else {\n\t\t\t\t\twordCountSpan.style.color = '#888';\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('submit', (e) => {\n\t\t\t\tconst words = promptInput.value.trim().split(/\\s+/).filter(Boolean);\n\t\t\t\tif (words.length > 15) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\talert('Your response cannot be more than 15 words.');\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('htmx:beforeRequest', function(evt) {\n\t\t\t\t// Show loading state\n\t\t\t\tconst buttonText = responseForm.querySelector('.button-text');\n\t\t\t\tconst buttonLoading = responseForm.querySelector('.button-loading');\n\t\t\t\tconst submitButton = responseForm.querySelector('button[type=\"submit\"]');\n\n\t\t\t\tif (buttonText && buttonLoading) {\n\t\t\t\t\tbuttonText.style.display = 'none';\n\t\t\t\t\tbuttonLoading.style.display = 'inline';\n\t\t\t\t}\n\t\t\t\tsubmitButton.disabled = true;\n\t\t\t\tpromptInput.disabled = true;\n\t\t\t});\n\n\t\t\tresponseForm.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t\t// Reset loading state\n\t\t\t\tconst buttonText = responseForm.querySelector('.button-text');\n\t\t\t\tconst buttonLoading = responseForm.querySelector('.button-loading');\n\t\t\t\tconst submitButton = responseForm.querySelector('button[type=\"submit\"]');\n\n\t\t\t\tif (buttonText && buttonLoading) {\n\t\t\t\t\tbuttonText.style.display = 'inline';\n\t\t\t\t\tbuttonLoading.style.display = 'none';\n\t\t\t\t}\n\t\t\t\tsubmitButton.disabled = false;\n\t\t\t\tpromptInput.disabled = false;\n\n\t\t\t\tif (evt.detail.successful) {\n\t\t\t\t\tpromptInput.value = '';\n\t\t\t\t\twordCountSpan.textContent = '0/15 words';\n\t\t\t\t\twordCountSpan.style.color = '#666';\n\t\t\t\t}\n\t\t\t});\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -38,6 +38,7 @@ type Session struct {
 	HistoricalDesc         string
 	HistoricalURL          string
 	HistoricalSummary      string
+	CSRFToken              string
 }
 
 // Manager handles the creation, storage, and retrieval of sessions.

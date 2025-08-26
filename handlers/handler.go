@@ -21,6 +21,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/jung-kurt/gofpdf"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	_ "modernc.org/sqlite"
 )
 
@@ -599,14 +601,14 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 
 	pdf.SetFont("Times", "I", 16)
 	subtitle := fmt.Sprintf("An AI-generated %s tale in the style of %s",
-		strings.Title(sess.CurrentGenre),
+		cases.Title(language.English).String(sess.CurrentGenre),
 		sess.CurrentAuthor,
 	)
 	pdf.CellFormat(0, 10, subtitle, "", 1, "C", false, 0, "")
 	pdf.Ln(5)
 
 	pdf.SetFont("Times", "", 12)
-	difficulty := fmt.Sprintf("Difficulty: %s", strings.Title(sess.GameState.Rules.ConsequenceModel))
+	difficulty := fmt.Sprintf("Difficulty: %s", cases.Title(language.English).String(sess.GameState.Rules.ConsequenceModel))
 	pdf.CellFormat(0, 10, difficulty, "", 1, "C", false, 0, "")
 
 	if sess.CurrentGenre == "historical-fiction" {

@@ -92,14 +92,15 @@ CORE GMAI RULES:
     c. "description": A concise string (max 20 words). **This field MUST NOT be empty.** The 'description' MUST be a short phrase, start with a lowercase letter (unless it is a proper noun), and MUST NOT end with a period.
 
   - **NON-NEGOTIABLE FORMATTING for the 'story' text:**
-    - **The '<span class="tooltiptext">...</span>' element is MANDATORY and MUST NOT be omitted.** The entire nested structure is required for every proper noun.
+    - **The '<span class="tooltiptext">...</span>' element is MANDATORY and MUST be nested INSIDE the parent tooltip span.**
     - You MUST wrap the 'phrase_used' with the following **exact and complete** HTML structure:
    
       '<span class="proper-noun tooltip" tabindex="0">{phrase_used}<span class="tooltiptext">{description}</span></span>'
 
   - **CRITICAL Punctuation Rule:** All punctuation that immediately follows a proper noun MUST be placed *inside* the closing '</span>' tag.
 
-  - **NEGATIVE CONSTRAINT:** **If you create a 'proper_noun' entry in the JSON, you MUST also create the corresponding, full HTML tooltip in the 'story' text. There are no exceptions. Failure to include the nested '<span class="tooltiptext">...</span>' is a critical error.**
+  - **NEGATIVE CONSTRAINT:** **If you create a 'proper_noun' entry in the JSON, you MUST also create the corresponding, full HTML tooltip in the 'story' text. There are no exceptions. The tooltiptext span MUST be nested inside the tooltip span.**
+
 
 **5. Rule of Challenge and Variety:**
   - The game must present varied challenges. When creating a new obstacle for the 'active_puzzles_and_obstacles' array, you MUST avoid repeating puzzle types that are already listed in the 'solved_puzzle_types' array.

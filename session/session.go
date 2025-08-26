@@ -34,6 +34,8 @@ type Session struct {
 	IsBastion              bool
 	IsDiogenesVsChesterton bool
 	IsThompson             bool
+	IsFishburne            bool
+	IsBlanchett            bool
 	HistoricalEvent        string
 	HistoricalDesc         string
 	HistoricalURL          string

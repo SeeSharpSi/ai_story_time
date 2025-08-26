@@ -275,82 +275,93 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.IsBastion = false
 	sess.IsDiogenesVsChesterton = false
 	sess.IsThompson = false
+	sess.IsFishburne = false
+	sess.IsBlanchett = false
 
 	author := ""
-	narrative_dice := rand.Intn(16) // Roll a number from 0 to 12
+	narrative_dice := rand.Intn(13)
 
 	switch {
 	case narrative_dice < 1:
 		sess.IsAngry = true
 		author = "a very angry narrator"
 
-	case narrative_dice < 2 && genre != "historical-fiction":
+	case narrative_dice < 2:
 		sess.IsFunny = true
 		author = "the Monty Python group"
 
-	// This style is exclusive to the sci-fi genre
 	case narrative_dice < 3 && genre == "sci-fi":
 		sess.IsXKCD = true
 		author = "XKCD"
 
-	case narrative_dice < 4:
-		sess.IsStanley = true
-		author = "The Stanley Parable"
+	case narrative_dice < 3 && genre == "historical-fiction":
+		sess.IsThompson = true
+		author = "Hunter S. Thompson"
 
-	// This style is exclusive to the sci-fi genre
-	case narrative_dice < 5 && genre == "sci-fi":
+	case narrative_dice < 3 && genre == "fantasy":
+		sess.IsBlanchett = true
+		author = "Cate Blanchett"
+
+	case narrative_dice < 4 && genre == "sci-fi":
 		sess.IsGLaDOS = true
 		author = "GLaDOS from Portal 2"
 
-	// This style is exclusive to the fantasy genre
-	case narrative_dice < 5 && genre == "fantasy":
+	case narrative_dice < 4 && genre == "fantasy":
 		sess.IsKreia = true
 		author = "Kreia from Knights of the Old Republic II"
 
-	// This style is exclusive to the historical fiction genre
-	case narrative_dice < 5 && genre == "historical-fiction":
+	case narrative_dice < 4 && genre == "historical-fiction":
 		sess.IsTheHistorian = true
 		author = "The Historian"
 
-	case narrative_dice < 6:
+	case narrative_dice < 5:
 		sess.IsNietzsche = true
 		author = "Friedrich Nietzsche"
 
-	case narrative_dice < 7:
-		sess.IsJohnBunyan = true
-		author = "John Bunyan"
-
-	case narrative_dice < 8:
-		sess.IsSocrates = true
-		author = "Socrates"
-
-	case narrative_dice < 9:
-		sess.IsRossRamsay = true
-		author = "Ross & Ramsay"
-
-	case narrative_dice < 10 && genre != "historical-fiction":
-		sess.IsSnoopChild = true
-		author = "Snoop Dog & Julia Child"
-
-	case narrative_dice < 11 && genre != "historical-fiction":
-		sess.IsDrSeuss = true
-		author = "Dr. Seuss"
-
-	case narrative_dice < 12:
+	case narrative_dice < 6:
 		sess.IsTolstoyVsCamus = true
 		author = "Tolstoy & Camus"
 
-	case narrative_dice < 13:
+	case narrative_dice < 7:
+		sess.IsSocrates = true
+		author = "Socrates"
+
+	case narrative_dice < 8:
+		narrative_dice2 := rand.Intn(4)
+		switch {
+		case narrative_dice2 < 1:
+			sess.IsRossRamsay = true
+			author = "Ross & Ramsay"
+
+		case narrative_dice2 < 2 && genre != "historical-fiction":
+			sess.IsSnoopChild = true
+			author = "Snoop Dog & Julia Child"
+
+		case narrative_dice2 < 3 && genre != "historical-fiction":
+			sess.IsDrSeuss = true
+			author = "Dr. Seuss"
+
+		case narrative_dice2 < 4:
+			sess.IsDiogenesVsChesterton = true
+			author = "Diogenes & Chesterton"
+
+		}
+
+	case narrative_dice < 9:
+		sess.IsJohnBunyan = true
+		author = "John Bunyan"
+
+	case narrative_dice < 10:
 		sess.IsBastion = true
 		author = "the videogame Bastion"
 
-	case narrative_dice < 14:
-		sess.IsDiogenesVsChesterton = true
-		author = "Diogenes & Chesterton"
+	case narrative_dice < 11:
+		sess.IsStanley = true
+		author = "The Stanley Parable"
 
-	case narrative_dice < 15:
-		sess.IsThompson = true
-		author = "Hunter S. Thompson"
+	case narrative_dice < 12:
+		sess.IsFishburne = true
+		author = "Laurence Fishburne"
 
 	default:
 		author = authors[rand.Intn(len(authors))]
@@ -672,6 +683,10 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		title = "The Lamp and the Cross"
 	} else if sess.IsThompson {
 		title = "Loathing in the Dragon's Lair"
+	} else if sess.IsFishburne {
+		title = "A Glitch in the Code"
+	} else if sess.IsBlanchett {
+		title = "A Whisper of Starlight"
 	}
 
 	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")

@@ -253,9 +253,9 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		sess.IsRossRamsay = true
 		author = "Ross & Ramsay"
 
-	case narrative_dice < 10:
+	case narrative_dice < 10 && genre != "historical-fiction":
 		sess.IsSnoopChild = true
-		author = "Herzog & Attenborough"
+		author = "Snoop Dog & Julia Child"
 
 	case narrative_dice < 11 && genre != "historical-fiction":
 		sess.IsDrSeuss = true

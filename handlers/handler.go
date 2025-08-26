@@ -391,6 +391,12 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
 	userAction := r.FormValue("prompt")
 
+	if len(strings.Fields(userAction)) > 15 {
+		// Return an error to the user without calling the AI
+		http.Error(w, "Response must be 15 words or less.", http.StatusBadRequest)
+		return
+	}
+
 	if strings.ToLower(strings.TrimSpace(userAction)) == "restart" {
 		query := "genre=" + sess.CurrentGenre + "&consequence_model=" + sess.GameState.Rules.ConsequenceModel
 		r.URL.RawQuery = query

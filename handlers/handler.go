@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"story_ai/metrics"
 	"story_ai/prompts"
 	"story_ai/session"
 	"story_ai/story"
@@ -227,6 +228,7 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 }
 
 func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	sess, cookie := h.Manager.GetOrCreateSession(r)
 	http.SetCookie(w, &cookie)
 
@@ -236,14 +238,18 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	// Validate genre parameter
 	validGenres := []string{"fantasy", "sci-fi", "historical-fiction"}
 	if genre != "" && !contains(validGenres, genre) {
-		http.Error(w, "Invalid genre parameter", http.StatusBadRequest)
+		metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, false)
+		err := fmt.Errorf("invalid genre parameter: %s", genre)
+		handleStartStoryError(w, r, err, ErrorTypeValidation)
 		return
 	}
 
 	// Validate consequence model parameter
 	validModels := []string{"exploratory", "challenging", "punishing"}
 	if consequenceModel != "" && !contains(validModels, consequenceModel) {
-		http.Error(w, "Invalid consequence_model parameter", http.StatusBadRequest)
+		metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, false)
+		err := fmt.Errorf("invalid consequence_model parameter: %s", consequenceModel)
+		handleStartStoryError(w, r, err, ErrorTypeValidation)
 		return
 	}
 
@@ -454,15 +460,19 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel, placeholder).Render(context.Background(), w)
+
+	// Record successful story generation metrics
+	metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, true)
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	sess, _ := h.Manager.GetOrCreateSession(r)
 	userAction := r.FormValue("prompt")
 
 	// Input validation
 	if err := validateUserAction(userAction); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, sess, userAction, err)
 		return
 	}
 
@@ -494,17 +504,13 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		errorPage := story.StoryPage{Prompt: userAction, Response: "[The AI's response was blocked. Try something else.]"}
-		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
+		handleAIError(w, r, sess, userAction, err, startTime)
 		return
 	}
 
 	aiResp, err := h.parseAndRetryAIResponse(r.Context(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
-		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
-		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
+		handleSystemError(w, r, sess, userAction, err, ErrorTypeAI)
 		return
 	}
 
@@ -537,6 +543,11 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	storyText := aiResp.StoryUpdate.Story // Use nouns from this turn for tooltips
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: storyText})
+
+	// Record successful AI API usage and user activity metrics
+	metrics.RecordAPIUsage("gemini", 0, time.Since(startTime), true) // Token count would need to be extracted from AI response
+	metrics.RecordUserActivity("generate_response", sess.CurrentGenre, time.Since(startTime))
+
 	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
 }
 

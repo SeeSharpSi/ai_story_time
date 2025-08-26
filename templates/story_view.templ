@@ -28,7 +28,10 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 		<form id="response-form" hx-post="/generate" hx-target="body" hx-swap="none" hx-indicator="#spinner">
 			<input type="text" id="prompt" name="prompt" autofocus="autofocus" autocomplete="off" placeholder={ fmt.Sprintf("%s", placeholder) } style="width: 100%; margin-bottom: 10px;"/>
 			<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-				<button type="submit">Send</button>
+				<button type="submit">
+					<span class="button-text">Send</span>
+					<span class="button-loading" style="display: none;">Generating...</span>
+				</button>
 				<span style="font-style: italic; color: #666; font-size: 0.8em;">{ difficulty }</span>
 				<span id="word-count">0/15 words</span>
 			</div>
@@ -61,13 +64,24 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 			.item-properties {
 				font-style: italic;
 				color: #888; /* Faint color */
-                text-align: right;
+                	text-align: right;
 			}
 			.inventory-divider {
 				border: 0;
 				height: 1px;
 				background-color: #444;
 				margin: 0;
+			}
+
+			#response-form button:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+
+			.button-loading {
+				display: flex;
+				align-items: center;
+				gap: 8px;
 			}
 		</style>
 
@@ -98,7 +112,33 @@ templ StoryView(initialStory string, playerStatus story.PlayerStatus, inventory 
 				}
 			});
 
+			responseForm.addEventListener('htmx:beforeRequest', function(evt) {
+				// Show loading state
+				const buttonText = responseForm.querySelector('.button-text');
+				const buttonLoading = responseForm.querySelector('.button-loading');
+				const submitButton = responseForm.querySelector('button[type="submit"]');
+
+				if (buttonText && buttonLoading) {
+					buttonText.style.display = 'none';
+					buttonLoading.style.display = 'inline';
+				}
+				submitButton.disabled = true;
+				promptInput.disabled = true;
+			});
+
 			responseForm.addEventListener('htmx:afterRequest', function(evt) {
+				// Reset loading state
+				const buttonText = responseForm.querySelector('.button-text');
+				const buttonLoading = responseForm.querySelector('.button-loading');
+				const submitButton = responseForm.querySelector('button[type="submit"]');
+
+				if (buttonText && buttonLoading) {
+					buttonText.style.display = 'inline';
+					buttonLoading.style.display = 'none';
+				}
+				submitButton.disabled = false;
+				promptInput.disabled = false;
+
 				if (evt.detail.successful) {
 					promptInput.value = '';
 					wordCountSpan.textContent = '0/15 words';

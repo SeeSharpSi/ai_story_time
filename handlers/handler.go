@@ -17,6 +17,7 @@ import (
 	"story_ai/templates"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/google/generative-ai-go/genai"
@@ -61,6 +62,57 @@ var (
 	// Regex to fix punctuation outside of span tags
 	spanPunctuationRegex = regexp.MustCompile(`(<span\s+class="[^"]*">(?:.|\n)*?)(</span>)([.,?!])`)
 )
+
+// validateUserAction validates user input for security and appropriateness
+func validateUserAction(action string) error {
+	// Check length constraints
+	if len(action) == 0 {
+		return fmt.Errorf("action cannot be empty")
+	}
+	if len(action) > 500 {
+		return fmt.Errorf("action must be 500 characters or less")
+	}
+	if len(strings.Fields(action)) > 15 {
+		return fmt.Errorf("action must be 15 words or less")
+	}
+
+	// Check for potentially harmful content
+	dangerousPatterns := []string{
+		`<script`, `javascript:`, `on\w+\s*=`, `<iframe`, `<object`, `<embed`,
+		`eval\s*\(`, `document\.`, `window\.`, `alert\s*\(`, `prompt\s*\(`,
+		`confirm\s*\(`, `setTimeout\s*\(`, `setInterval\s*\(`,
+	}
+
+	actionLower := strings.ToLower(action)
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(actionLower, pattern) {
+			return fmt.Errorf("action contains potentially harmful content")
+		}
+	}
+
+	// Check for excessive special characters
+	specialChars := 0
+	for _, char := range action {
+		if !unicode.IsLetter(char) && !unicode.IsDigit(char) && !unicode.IsSpace(char) && !unicode.IsPunct(char) {
+			specialChars++
+		}
+	}
+	if specialChars > len(action)/10 { // More than 10% special characters
+		return fmt.Errorf("action contains too many special characters")
+	}
+
+	return nil
+}
+
+// contains checks if a slice contains a specific string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
 func parseAIResponse(response string) (AIResponse, error) {
@@ -180,6 +232,21 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	genre := r.URL.Query().Get("genre")
 	consequenceModel := r.URL.Query().Get("consequence_model")
+
+	// Validate genre parameter
+	validGenres := []string{"fantasy", "sci-fi", "historical-fiction"}
+	if genre != "" && !contains(validGenres, genre) {
+		http.Error(w, "Invalid genre parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Validate consequence model parameter
+	validModels := []string{"exploratory", "challenging", "punishing"}
+	if consequenceModel != "" && !contains(validModels, consequenceModel) {
+		http.Error(w, "Invalid consequence_model parameter", http.StatusBadRequest)
+		return
+	}
+
 	sess.GameState.Rules.ConsequenceModel = consequenceModel
 	sess.CurrentGenre = genre
 
@@ -393,9 +460,9 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	sess, _ := h.Manager.GetOrCreateSession(r)
 	userAction := r.FormValue("prompt")
 
-	if len(strings.Fields(userAction)) > 15 {
-		// Return an error to the user without calling the AI
-		http.Error(w, "Response must be 15 words or less.", http.StatusBadRequest)
+	// Input validation
+	if err := validateUserAction(userAction); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

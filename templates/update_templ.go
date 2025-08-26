@@ -12,7 +12,7 @@ import "story_ai/story"
 import "fmt"
 import "strings"
 
-func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string, worldTension int) templ.Component {
+func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string, worldTension int, author string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -71,7 +71,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(playerStatus.Conditions, ", "))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 12, Col: 88}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 12, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -94,7 +94,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(page.Prompt)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 19, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 18, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -125,7 +125,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(item.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 30, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 29, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -138,7 +138,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(item.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 31, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 30, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -151,7 +151,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(FormatProperties(item.Properties))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 33, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 32, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -173,12 +173,25 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 			return templ_7745c5c3_Err
 		}
 		if gameOver || gameWon {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"response-form\" hx-swap-oob=\"true\"><button onclick=\"window.location.href='/download'\" class=\"button\">Download Story</button> <button onclick=\"window.location.href='/'\" class=\"button\" style=\"margin-left: 10px;\">Restart</button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"response-form\" hx-swap-oob=\"true\"><div style=\"margin-bottom: 15px; font-style: italic; color: #aaa;\">Narrated in the style of ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(author)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/update.templ`, Line: 46, Col: 37}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div><button onclick=\"window.location.href='/download'\" class=\"button\">Download Story</button> <button onclick=\"window.location.href='/'\" class=\"button\" style=\"margin-left: 10px;\">Restart</button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div id=\"dynamic-styles-wrapper\" hx-swap-oob=\"true\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div id=\"dynamic-styles-wrapper\" hx-swap-oob=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -190,7 +203,7 @@ func Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inv
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

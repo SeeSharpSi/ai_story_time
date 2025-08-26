@@ -56,6 +56,8 @@ var (
 	markdownBoldRegex = regexp.MustCompile(`\*\*(.*?)\*\*`)
 	// Regex to find Markdown italics (*text*)
 	markdownItalicRegex = regexp.MustCompile(`\*(.*?)\*`)
+	// Regex to fix punctuation outside of span tags
+	spanPunctuationRegex = regexp.MustCompile(`(<span\s+class="[^"]*">(?:.|\n)*?)(</span>)([.,?!])`)
 )
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
@@ -69,8 +71,12 @@ func parseAIResponse(response string) (AIResponse, error) {
 		return aiResp, err
 	}
 
-	aiResp.StoryUpdate.Story = markdownBoldRegex.ReplaceAllString(aiResp.StoryUpdate.Story, "<strong>$1</strong>")
-	aiResp.StoryUpdate.Story = markdownItalicRegex.ReplaceAllString(aiResp.StoryUpdate.Story, "<em>$1</em>")
+	story := aiResp.StoryUpdate.Story
+	story = markdownBoldRegex.ReplaceAllString(story, "<strong>$1</strong>")
+	story = markdownItalicRegex.ReplaceAllString(story, "<em>$1</em>")
+	story = spanPunctuationRegex.ReplaceAllString(story, "$1$3$2")
+
+	aiResp.StoryUpdate.Story = story
 
 	return aiResp, nil
 }
@@ -139,10 +145,18 @@ func (h *Handler) buildSystemPrompt(s *session.Session) string {
 		prompt += prompts.HistorianPrompt
 	} else if s.IsRossRamsay {
 		prompt += prompts.RossRamsayPrompt
-	} else if s.IsTzuGump {
-		prompt += prompts.SunTzuGumpPrompt
+	} else if s.IsSnoopChild {
+		prompt += prompts.SnoopChildPrompt
 	} else if s.IsDrSeuss {
 		prompt += prompts.DrSeussPrompt
+	} else if s.IsTolstoyVsCamus {
+		prompt += prompts.TolstoyVsCamusPrompt
+	} else if s.IsBastion {
+		prompt += prompts.BastionPrompt
+	} else if s.IsDiogenesVsChesterton {
+		prompt += prompts.DiogenesVsChestertonPrompt
+	} else if s.IsThompson {
+		prompt += prompts.ThompsonPrompt
 	}
 
 	switch s.CurrentGenre {
@@ -169,22 +183,26 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
-	sess.IsFunny = false        // Reset flag for new stories
-	sess.IsAngry = false        // Reset flag for new stories
-	sess.IsXKCD = false         // Reset flag for new stories
-	sess.IsStanley = false      // Reset flag for new stories
-	sess.IsGLaDOS = false       // Reset flag for new stories
-	sess.IsKreia = false        // Reset flag for new stories
-	sess.IsNietzsche = false    // Reset flag for new stories
-	sess.IsJohnBunyan = false   // Reset flag for new stories
-	sess.IsSocrates = false     // Reset flag for new stories
-	sess.IsTheHistorian = false // Reset flag for new stories
-	sess.IsRossRamsay = false   // Reset flag for new stories
-	sess.IsTzuGump = false      // Reset flag for new stories
-	sess.IsDrSeuss = false      // Reset flag for new stories
+	sess.IsFunny = false
+	sess.IsAngry = false
+	sess.IsXKCD = false
+	sess.IsStanley = false
+	sess.IsGLaDOS = false
+	sess.IsKreia = false
+	sess.IsNietzsche = false
+	sess.IsJohnBunyan = false
+	sess.IsSocrates = false
+	sess.IsTheHistorian = false
+	sess.IsRossRamsay = false
+	sess.IsSnoopChild = false
+	sess.IsDrSeuss = false
+	sess.IsTolstoyVsCamus = false
+	sess.IsBastion = false
+	sess.IsDiogenesVsChesterton = false
+	sess.IsThompson = false
 
 	author := ""
-	narrative_dice := rand.Intn(13) // Roll a number from 0 to 12
+	narrative_dice := rand.Intn(16) // Roll a number from 0 to 12
 
 	switch {
 	case narrative_dice < 1:
@@ -236,12 +254,28 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		author = "Ross & Ramsay"
 
 	case narrative_dice < 10:
-		sess.IsTzuGump = true
-		author = "Sun Tzu & Forrest Gump"
+		sess.IsSnoopChild = true
+		author = "Herzog & Attenborough"
 
 	case narrative_dice < 11 && genre != "historical-fiction":
 		sess.IsDrSeuss = true
 		author = "Dr. Seuss"
+
+	case narrative_dice < 12:
+		sess.IsTolstoyVsCamus = true
+		author = "Tolstoy & Camus"
+
+	case narrative_dice < 13:
+		sess.IsBastion = true
+		author = "the videogame Bastion"
+
+	case narrative_dice < 14:
+		sess.IsDiogenesVsChesterton = true
+		author = "Diogenes & Chesterton"
+
+	case narrative_dice < 15:
+		sess.IsThompson = true
+		author = "Hunter S. Thompson"
 
 	default:
 		author = authors[rand.Intn(len(authors))]
@@ -341,8 +375,15 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	if sess.IsStanley {
 		placeholder = "What does Stanley do?"
 	} else if sess.IsDrSeuss {
-		placeholder = "Your turn to play! What's next today?"
+		placeholder = "Now what will you do?"
+	} else if sess.IsTolstoyVsCamus {
+		placeholder = "What is the logical choice?"
+	} else if sess.IsBastion {
+		placeholder = "What does the Kid do?"
+	} else if sess.IsThompson {
+		placeholder = "What do I do?"
 	}
+
 	templates.StoryView(storyText, aiResp.NewGameState.PlayerStatus, aiResp.NewGameState.Inventory, aiResp.StoryUpdate.BackgroundColor, genre, aiResp.NewGameState.World.WorldTension, consequenceModel, placeholder).Render(context.Background(), w)
 }
 
@@ -380,7 +421,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		errorPage := story.StoryPage{Prompt: userAction, Response: "[The AI's response was blocked. Try something else.]"}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
 		return
 	}
 
@@ -388,7 +429,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorPage := story.StoryPage{Prompt: userAction, Response: fmt.Sprintf("[The AI's response was not valid JSON: %v]", err)}
 		sess.StoryHistory = append(sess.StoryHistory, errorPage)
-		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
+		templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, "#1e1e1e", false, false, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
 		return
 	}
 
@@ -421,7 +462,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 
 	storyText := aiResp.StoryUpdate.Story // Use nouns from this turn for tooltips
 	sess.StoryHistory = append(sess.StoryHistory, story.StoryPage{Prompt: userAction, Response: storyText})
-	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension).Render(context.Background(), w)
+	templates.Update(sess.StoryHistory, sess.GameState.PlayerStatus, sess.GameState.Inventory, aiResp.StoryUpdate.BackgroundColor, aiResp.StoryUpdate.GameOver, sess.GameState.GameWon, sess.CurrentGenre, sess.GameState.Rules.ConsequenceModel, sess.GameState.World.WorldTension, sess.CurrentAuthor).Render(context.Background(), w)
 }
 
 // writeHtmlToPdf parses a simple HTML string and writes it to the PDF, handling nested styles.
@@ -533,10 +574,18 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 		title = "The Human Thing"
 	} else if sess.IsRossRamsay {
 		title = "The Happy Little Scallop is RAW!"
-	} else if sess.IsTzuGump {
-		title = "The Unwitting Strategist"
+	} else if sess.IsSnoopChild {
+		title = "Fo' Shizzle, My Soufflé"
 	} else if sess.IsDrSeuss {
 		title = "Oh, the Things You Will Find!"
+	} else if sess.IsTolstoyVsCamus {
+		title = "The Kingdom and the Absurd"
+	} else if sess.IsBastion {
+		title = "The Kid's Tale"
+	} else if sess.IsDiogenesVsChesterton {
+		title = "The Lamp and the Cross"
+	} else if sess.IsThompson {
+		title = "Loathing in the Dragon's Lair"
 	}
 
 	pdf.CellFormat(0, 10, title, "", 1, "C", false, 0, "")

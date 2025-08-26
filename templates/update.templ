@@ -4,15 +4,14 @@ import "story_ai/story"
 import "fmt"
 import "strings"
 
-templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string, worldTension int) {
+templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, inventory []story.Item, bgColor string, gameOver bool, gameWon bool, currentGenre string, consequenceModel string, worldTension int, author string) {
 	<div id="player-status" hx-swap-oob="true">
 		<strong>Status:</strong>
 		<span style={ fmt.Sprintf("color: %s;", GetHealthStatus(playerStatus.Health).Color) }>{ GetHealthStatus(playerStatus.Health).Description }</span>
 		if len(playerStatus.Conditions) > 0 {
-			<span> | </span><span class="condition">{ strings.Join(playerStatus.Conditions, ", ") }</span>
+			<span>| </span><span class="condition">{ strings.Join(playerStatus.Conditions, ", ") }</span>
 		}
 	</div>
-
 	<div id="story-history" hx-swap-oob="true">
 		for _, page := range storyHistory {
 			<div class="story-page">
@@ -21,13 +20,13 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 			</div>
 		}
 	</div>
-
 	<div id="inventory" hx-swap-oob="true">
 		<h3>Inventory</h3>
 		<div class="inventory-items">
 			for i, item := range inventory {
 				<div class="inventory-item">
-					<span class="item-name tooltip" tabindex="0">{ item.Name }
+					<span class="item-name tooltip" tabindex="0">
+						{ item.Name }
 						<span class="tooltiptext">{ item.Description }</span>
 					</span>
 					<span class="item-properties">{ FormatProperties(item.Properties) }</span>
@@ -38,17 +37,18 @@ templ Update(storyHistory []story.StoryPage, playerStatus story.PlayerStatus, in
 			}
 		</div>
 	</div>
-
 	if gameOver || gameWon {
 		<div id="response-form" hx-swap-oob="true">
 			// if gameWon {
-				// <div class="victory-message">Well done.</div>
+			// <div class="victory-message">Well done.</div>
 			// }
+			<div style="margin-bottom: 15px; font-style: italic; color: #aaa;">
+				Narrated in the style of { author }
+			</div>
 			<button onclick="window.location.href='/download'" class="button">Download Story</button>
 			<button onclick="window.location.href='/'" class="button" style="margin-left: 10px;">Restart</button>
 		</div>
 	}
-
 	<div id="dynamic-styles-wrapper" hx-swap-oob="true">
 		@templ.Raw(fmt.Sprintf("<style>:root { --background-color: %s; }</style>", bgColor))
 		@templ.Raw(VignetteStyle(worldTension))

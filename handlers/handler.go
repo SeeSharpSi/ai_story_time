@@ -319,15 +319,11 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		author = "Friedrich Nietzsche"
 
 	case narrative_dice < 6:
-		sess.IsTolstoyVsCamus = true
-		author = "Tolstoy & Camus"
-
-	case narrative_dice < 7:
 		sess.IsSocrates = true
 		author = "Socrates"
 
-	case narrative_dice < 8:
-		narrative_dice2 := rand.Intn(4)
+	case narrative_dice < 7:
+		narrative_dice2 := rand.Intn(5)
 		switch {
 		case narrative_dice2 < 1:
 			sess.IsRossRamsay = true
@@ -345,21 +341,24 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 			sess.IsDiogenesVsChesterton = true
 			author = "Diogenes & Chesterton"
 
+		case narrative_dice2 < 5:
+			sess.IsTolstoyVsCamus = true
+			author = "Tolstoy & Camus"
 		}
 
-	case narrative_dice < 9:
+	case narrative_dice < 8:
 		sess.IsJohnBunyan = true
 		author = "John Bunyan"
 
-	case narrative_dice < 10:
+	case narrative_dice < 9:
 		sess.IsBastion = true
 		author = "the videogame Bastion"
 
-	case narrative_dice < 11:
+	case narrative_dice < 10:
 		sess.IsStanley = true
 		author = "The Stanley Parable"
 
-	case narrative_dice < 12:
+	case narrative_dice < 11:
 		sess.IsFishburne = true
 		author = "Laurence Fishburne"
 

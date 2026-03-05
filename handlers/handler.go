@@ -42,7 +42,7 @@ type NarratorOption struct {
 }
 
 type Handler struct {
-	Model   *genai.GenerativeModel
+	Client  *genai.Client
 	Manager *session.Manager
 }
 
@@ -144,7 +144,23 @@ func parseAIResponse(response string) (AIResponse, error) {
 	return aiResp, nil
 }
 
-func (h *Handler) parseAndRetryAIResponse(ctx context.Context, originalResponse string) (AIResponse, error) {
+func (h *Handler) getModel(systemInstruction string) *genai.GenerativeModel {
+	model := h.Client.GenerativeModel("gemini-3.1-flash-lite-preview")
+	temp := float32(0.9)
+	model.GenerationConfig = genai.GenerationConfig{
+		Temperature:      &temp,
+		ResponseMIMEType: "application/json",
+	}
+	if systemInstruction != "" {
+		model.SystemInstruction = &genai.Content{
+			Parts: []genai.Part{genai.Text(systemInstruction)},
+		}
+	}
+	return model
+}
+
+func (h *Handler) parseAndRetryAIResponse(ctx context.Context, model *genai.GenerativeModel, originalResponse string) (AIResponse, error) {
+	log.Printf("RAW AI RESPONSE: %s", originalResponse)
 	aiResp, err := parseAIResponse(originalResponse)
 	if err == nil {
 		return aiResp, nil
@@ -154,7 +170,7 @@ func (h *Handler) parseAndRetryAIResponse(ctx context.Context, originalResponse 
 
 	for i := range 3 { // Retry up to 3 times
 		retryPrompt := fmt.Sprintf(prompts.JsonRetryPrompt, originalResponse)
-		resp, retryErr := h.Model.GenerateContent(ctx, genai.Text(retryPrompt))
+		resp, retryErr := model.GenerateContent(ctx, genai.Text(retryPrompt))
 		if retryErr != nil {
 			log.Printf("AI retry attempt %d failed: %v", i+1, retryErr)
 			continue
@@ -326,13 +342,20 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		prompt = h.buildSystemPrompt(sess)
 	}
 
-	// The initial game state is empty, the AI will generate the starting scenario.
 	initialRequest := AIRequest{
 		GameState: &story.GameState{
-			Rules:       story.Rules{ConsequenceModel: consequenceModel},
-			World:       story.World{WorldTension: 0},
-			Climax:      false,
-			ProperNouns: []story.ProperNoun{},
+			PlayerStatus:      story.PlayerStatus{Health: 100, Stamina: 100, Conditions: make([]string, 0)},
+			Inventory:         make([]story.Item, 0),
+			Environment:       story.Environment{Exits: make(map[string]string), WorldObjects: make([]story.WorldObject, 0)},
+			NPCs:              make([]story.NPC, 0),
+			Puzzles:           make([]story.Puzzle, 0),
+			ProperNouns:       make([]story.ProperNoun, 0),
+			Rules:             story.Rules{ConsequenceModel: consequenceModel},
+			World:             story.World{WorldTension: 0},
+			Climax:            false,
+			WinConditions:     make([]string, 0),
+			LossConditions:    make([]string, 0),
+			SolvedPuzzleTypes: make([]string, 0),
 		},
 		UserAction: "Start the game.",
 	}
@@ -342,16 +365,16 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullPrompt := prompt + string(reqBytes)
+	model := h.getModel(prompt)
 
-	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(fullPrompt))
+	resp, err := model.GenerateContent(context.Background(), genai.Text(string(reqBytes)))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		log.Printf("AI ERROR (StartStory): %v", err) 
+		log.Printf("AI ERROR (StartStory): %v", err)
 		http.Error(w, "The AI failed to start the story. Please try again.", http.StatusInternalServerError)
 		return
 	}
 
-	aiResp, err := h.parseAndRetryAIResponse(context.Background(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
+	aiResp, err := h.parseAndRetryAIResponse(context.Background(), model, string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to parse AI's initial response: %v", err), http.StatusInternalServerError)
 		return
@@ -591,15 +614,15 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullPrompt := systemPrompt + string(reqBytes)
+	model := h.getModel(systemPrompt)
 
-	resp, err := h.Model.GenerateContent(r.Context(), genai.Text(fullPrompt))
+	resp, err := model.GenerateContent(r.Context(), genai.Text(string(reqBytes)))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		handleAIError(w, r, sess, userAction, err, startTime)
 		return
 	}
 
-	aiResp, err := h.parseAndRetryAIResponse(r.Context(), string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
+	aiResp, err := h.parseAndRetryAIResponse(r.Context(), model, string(resp.Candidates[0].Content.Parts[0].(genai.Text)))
 	if err != nil {
 		handleSystemError(w, r, sess, userAction, err, ErrorTypeAI)
 		return

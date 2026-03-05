@@ -34,15 +34,10 @@ func main() {
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-3.1-flash-lite-preview")
-	temp := float32(0.9)
-	model.GenerationConfig = genai.GenerationConfig{
-		Temperature: &temp,
-	}
 	sessionManager := session.NewManager()
 
 	h := &handlers.Handler{
-		Model:   model,
+		Client:  client,
 		Manager: sessionManager,
 	}
 

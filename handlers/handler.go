@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 	"story_ai/metrics"
 	"story_ai/prompts"
 	"story_ai/session"
@@ -27,6 +28,18 @@ import (
 	"golang.org/x/text/language"
 	_ "modernc.org/sqlite"
 )
+
+type NarratorOption struct {
+	Name string
+	// A function to set the specific flag on the session
+	ApplyFlag func(s *session.Session)
+	// Whitelist of genres (empty = all allowed)
+	AllowedGenres []string
+	// Blacklist of genres (empty = none excluded)
+	ExcludedGenres []string
+	// Relative chance to be picked (higher = more likely)
+	Weight int
+}
 
 type Handler struct {
 	Model   *genai.GenerativeModel
@@ -107,12 +120,7 @@ func validateUserAction(action string) error {
 
 // contains checks if a slice contains a specific string
 func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, item)
 }
 
 // parseAIResponse unmarshals the JSON from the AI and cleans up the story text.
@@ -144,7 +152,7 @@ func (h *Handler) parseAndRetryAIResponse(ctx context.Context, originalResponse 
 
 	log.Printf("Initial JSON parsing failed: %v. Retrying with the AI.", err)
 
-	for i := 0; i < 3; i++ { // Retry up to 3 times
+	for i := range 3 { // Retry up to 3 times
 		retryPrompt := fmt.Sprintf(prompts.JsonRetryPrompt, originalResponse)
 		resp, retryErr := h.Model.GenerateContent(ctx, genai.Text(retryPrompt))
 		if retryErr != nil {
@@ -167,7 +175,7 @@ func (h *Handler) parseAndRetryAIResponse(ctx context.Context, originalResponse 
 	return AIResponse{}, fmt.Errorf("failed to parse AI response after multiple retries")
 }
 
-func prettyPrint(v interface{}) string {
+func prettyPrint(v any) string {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return fmt.Sprintf("Error pretty printing: %v", err)
@@ -176,54 +184,64 @@ func prettyPrint(v interface{}) string {
 }
 
 func (h *Handler) buildSystemPrompt(s *session.Session) string {
+	// Start with the base prompt, injecting the current author's name
 	prompt := fmt.Sprintf(prompts.BasePrompt, s.CurrentAuthor)
 
-	if s.IsFunny {
+	// Append the specific persona prompt based on the session's NarratorPersona ID
+	switch s.NarratorPersona {
+	case "funny":
 		prompt += prompts.FunnyStoryPrompt
-	} else if s.IsAngry {
+	case "angry":
 		prompt += prompts.AngryPrompt
-	} else if s.IsXKCD {
+	case "xkcd":
 		prompt += prompts.XKCDPrompt
-	} else if s.IsStanley {
+	case "stanley":
 		prompt += prompts.StanleyPrompt
-	} else if s.IsGLaDOS {
+	case "glados":
 		prompt += prompts.GLaDOSPrompt
-	} else if s.IsKreia {
+	case "kreia":
 		prompt += prompts.KreiaPrompt
-	} else if s.IsNietzsche {
+	case "nietzsche":
 		prompt += prompts.NietzschePrompt
-	} else if s.IsJohnBunyan {
+	case "bunyan":
 		prompt += prompts.BunyanPrompt
-	} else if s.IsSocrates {
+	case "socrates":
 		prompt += prompts.SocraticPrompt
-	} else if s.IsTheHistorian {
+	case "historian":
 		prompt += prompts.HistorianPrompt
-	} else if s.IsRossRamsay {
+	case "ross_ramsay":
 		prompt += prompts.RossRamsayPrompt
-	} else if s.IsSnoopChild {
+	case "snoop_child":
 		prompt += prompts.SnoopChildPrompt
-	} else if s.IsDrSeuss {
+	case "dr_seuss":
 		prompt += prompts.DrSeussPrompt
-	} else if s.IsTolstoyVsCamus {
+	case "tolstoy_camus":
 		prompt += prompts.TolstoyVsCamusPrompt
-	} else if s.IsBastion {
+	case "bastion":
 		prompt += prompts.BastionPrompt
-	} else if s.IsDiogenesVsChesterton {
+	case "diogenes_chesterton":
 		prompt += prompts.DiogenesVsChestertonPrompt
-	} else if s.IsThompson {
+	case "thompson":
 		prompt += prompts.ThompsonPrompt
+	case "fishburne":
+		prompt += prompts.FishburnePrompt
+	case "blanchett":
+		prompt += prompts.BlanchettPrompt
 	}
 
+	// Append the genre-specific prompt
 	switch s.CurrentGenre {
 	case "fantasy":
 		prompt += prompts.FantasyPrompt
 	case "sci-fi":
 		prompt += prompts.SciFiPrompt
 	case "historical-fiction":
+		// Historical fiction requires injecting specific event details
 		prompt += fmt.Sprintf(prompts.HistoricalFictionPrompt, s.HistoricalEvent, s.HistoricalDesc, s.HistoricalSummary)
 	default:
 		prompt += prompts.FantasyPrompt
 	}
+
 	return prompt
 }
 
@@ -258,113 +276,9 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Reset story history for a new game
 	sess.StoryHistory = []story.StoryPage{}
-	sess.IsFunny = false
-	sess.IsAngry = false
-	sess.IsXKCD = false
-	sess.IsStanley = false
-	sess.IsGLaDOS = false
-	sess.IsKreia = false
-	sess.IsNietzsche = false
-	sess.IsJohnBunyan = false
-	sess.IsSocrates = false
-	sess.IsTheHistorian = false
-	sess.IsRossRamsay = false
-	sess.IsSnoopChild = false
-	sess.IsDrSeuss = false
-	sess.IsTolstoyVsCamus = false
-	sess.IsBastion = false
-	sess.IsDiogenesVsChesterton = false
-	sess.IsThompson = false
-	sess.IsFishburne = false
-	sess.IsBlanchett = false
+	sess.NarratorPersona = ""
 
-	author := ""
-	narrative_dice := rand.Intn(13)
-
-	switch {
-	case narrative_dice < 1:
-		sess.IsAngry = true
-		author = "a very angry narrator"
-
-	case narrative_dice < 2:
-		sess.IsFunny = true
-		author = "the Monty Python group"
-
-	case narrative_dice < 3 && genre == "sci-fi":
-		sess.IsXKCD = true
-		author = "XKCD"
-
-	case narrative_dice < 3 && genre == "historical-fiction":
-		sess.IsThompson = true
-		author = "Hunter S. Thompson"
-
-	case narrative_dice < 3 && genre == "fantasy":
-		sess.IsBlanchett = true
-		author = "Cate Blanchett"
-
-	case narrative_dice < 4 && genre == "sci-fi":
-		sess.IsGLaDOS = true
-		author = "GLaDOS from Portal 2"
-
-	case narrative_dice < 4 && genre == "fantasy":
-		sess.IsKreia = true
-		author = "Kreia from Knights of the Old Republic II"
-
-	case narrative_dice < 4 && genre == "historical-fiction":
-		sess.IsTheHistorian = true
-		author = "The Historian"
-
-	case narrative_dice < 5:
-		sess.IsNietzsche = true
-		author = "Friedrich Nietzsche"
-
-	case narrative_dice < 6:
-		sess.IsSocrates = true
-		author = "Socrates"
-
-	case narrative_dice < 7:
-		narrative_dice2 := rand.Intn(5)
-		switch {
-		case narrative_dice2 < 1:
-			sess.IsRossRamsay = true
-			author = "Ross & Ramsay"
-
-		case narrative_dice2 < 2 && genre != "historical-fiction":
-			sess.IsSnoopChild = true
-			author = "Snoop Dog & Julia Child"
-
-		case narrative_dice2 < 3 && genre != "historical-fiction":
-			sess.IsDrSeuss = true
-			author = "Dr. Seuss"
-
-		case narrative_dice2 < 4:
-			sess.IsDiogenesVsChesterton = true
-			author = "Diogenes & Chesterton"
-
-		case narrative_dice2 < 5:
-			sess.IsTolstoyVsCamus = true
-			author = "Tolstoy & Camus"
-		}
-
-	case narrative_dice < 8:
-		sess.IsJohnBunyan = true
-		author = "John Bunyan"
-
-	case narrative_dice < 9:
-		sess.IsBastion = true
-		author = "the videogame Bastion"
-
-	case narrative_dice < 10:
-		sess.IsStanley = true
-		author = "The Stanley Parable"
-
-	case narrative_dice < 11:
-		sess.IsFishburne = true
-		author = "Laurence Fishburne"
-
-	default:
-		author = authors[rand.Intn(len(authors))]
-	}
+	author := h.pickNarrator(sess, genre)
 
 	sess.CurrentAuthor = author
 	log.Printf("--- NEW STORY --- Author: %s, Genre: %s, Difficulty: %s", author, genre, consequenceModel)
@@ -432,6 +346,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.Model.GenerateContent(context.Background(), genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		log.Printf("AI ERROR (StartStory): %v", err) 
 		http.Error(w, "The AI failed to start the story. Please try again.", http.StatusInternalServerError)
 		return
 	}
@@ -442,7 +357,7 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("--- NEW GAME STATE (START) --- %s", prettyPrint(aiResp.NewGameState))
+	// log.Printf("--- NEW GAME STATE (START) --- %s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
@@ -451,21 +366,22 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 	sess.GameState = aiResp.NewGameState
 	// The FoundItems list will be empty on start, so no need to update it yet.
 	storyText := aiResp.StoryUpdate.Story
-	if sess.IsStanley && !strings.HasPrefix(storyText, "This is the story of a man named Stanley.") {
+	if sess.NarratorPersona == "stanley" && !strings.HasPrefix(storyText, "This is the story of a man named Stanley.") {
 		storyText = "This is the story of a man named Stanley.<br><br>" + storyText
 	}
 	sess.StoryHistory = []story.StoryPage{{Prompt: "Start", Response: storyText}}
 
 	placeholder := "What do you do?"
-	if sess.IsStanley {
+	switch sess.NarratorPersona {
+	case "stanley":
 		placeholder = "What does Stanley do?"
-	} else if sess.IsDrSeuss {
+	case "dr_seuss":
 		placeholder = "Now what will you do?"
-	} else if sess.IsTolstoyVsCamus {
+	case "tolstoy_camus":
 		placeholder = "What is the logical choice?"
-	} else if sess.IsBastion {
+	case "bastion":
 		placeholder = "What does the Kid do?"
-	} else if sess.IsThompson {
+	case "thompson":
 		placeholder = "What do I do?"
 	}
 
@@ -473,6 +389,171 @@ func (h *Handler) StartStory(w http.ResponseWriter, r *http.Request) {
 
 	// Record successful story generation metrics
 	metrics.RecordStoryGeneration(time.Since(startTime), genre, consequenceModel, true)
+}
+
+// pickNarrator selects a narrator persona based on the genre and weighted probabilities.
+// It sets the session's NarratorPersona field and returns the display name of the author.
+func (h *Handler) pickNarrator(sess *session.Session, genre string) string {
+	type NarratorOption struct {
+		DisplayName    string   // The name displayed to the user (e.g., "GLaDOS")
+		PersonaID      string   // The ID used in buildSystemPrompt (e.g., "glados")
+		AllowedGenres  []string // If set, only available for these genres
+		ExcludedGenres []string // If set, not available for these genres
+		Weight         int      // Probability weight
+	}
+
+	options := []NarratorOption{
+		{
+			DisplayName: "a very angry narrator",
+			PersonaID:   "angry",
+			Weight:      10,
+		},
+		{
+			DisplayName: "the Monty Python group",
+			PersonaID:   "funny",
+			Weight:      10,
+		},
+		{
+			DisplayName:   "XKCD",
+			PersonaID:     "xkcd",
+			AllowedGenres: []string{"sci-fi"},
+			Weight:        10,
+		},
+		{
+			DisplayName:   "Hunter S. Thompson",
+			PersonaID:     "thompson",
+			AllowedGenres: []string{"historical-fiction"},
+			Weight:        10,
+		},
+		{
+			DisplayName:   "Cate Blanchett",
+			PersonaID:     "blanchett",
+			AllowedGenres: []string{"fantasy"},
+			Weight:        10,
+		},
+		{
+			DisplayName:   "GLaDOS from Portal 2",
+			PersonaID:     "glados",
+			AllowedGenres: []string{"sci-fi"},
+			Weight:        10,
+		},
+		{
+			DisplayName:   "Kreia from Knights of the Old Republic II",
+			PersonaID:     "kreia",
+			AllowedGenres: []string{"fantasy"},
+			Weight:        10,
+		},
+		{
+			DisplayName:   "The Historian",
+			PersonaID:     "historian",
+			AllowedGenres: []string{"historical-fiction"},
+			Weight:        10,
+		},
+		{
+			DisplayName: "Friedrich Nietzsche",
+			PersonaID:   "nietzsche",
+			Weight:      10,
+		},
+		{
+			DisplayName: "Socrates",
+			PersonaID:   "socrates",
+			Weight:      10,
+		},
+		{
+			DisplayName: "Ross & Ramsay",
+			PersonaID:   "ross_ramsay",
+			Weight:      5,
+		},
+		{
+			DisplayName:    "Snoop Dog & Julia Child",
+			PersonaID:      "snoop_child",
+			ExcludedGenres: []string{"historical-fiction"},
+			Weight:         5,
+		},
+		{
+			DisplayName:    "Dr. Seuss",
+			PersonaID:      "dr_seuss",
+			ExcludedGenres: []string{"historical-fiction"},
+			Weight:         5,
+		},
+		{
+			DisplayName: "Diogenes & Chesterton",
+			PersonaID:   "diogenes_chesterton",
+			Weight:      5,
+		},
+		{
+			DisplayName: "Tolstoy & Camus",
+			PersonaID:   "tolstoy_camus",
+			Weight:      5,
+		},
+		{
+			DisplayName: "John Bunyan",
+			PersonaID:   "bunyan",
+			Weight:      10,
+		},
+		{
+			DisplayName: "the videogame Bastion",
+			PersonaID:   "bastion",
+			Weight:      10,
+		},
+		{
+			DisplayName: "The Stanley Parable",
+			PersonaID:   "stanley",
+			Weight:      10,
+		},
+		{
+			DisplayName: "Laurence Fishburne",
+			PersonaID:   "fishburne",
+			Weight:      10,
+		},
+		{
+			DisplayName: "Standard Classic Author", // Special case
+			PersonaID:   "",                        // Empty ID means default behavior
+			Weight:      20,
+		},
+	}
+
+	// 1. Filter valid options for the current genre
+	var validOptions []NarratorOption
+	totalWeight := 0
+
+	for _, opt := range options {
+		// Check AllowedGenres (whitelist)
+		if len(opt.AllowedGenres) > 0 && !contains(opt.AllowedGenres, genre) {
+			continue
+		}
+		// Check ExcludedGenres (blacklist)
+		if len(opt.ExcludedGenres) > 0 && contains(opt.ExcludedGenres, genre) {
+			continue
+		}
+
+		validOptions = append(validOptions, opt)
+		totalWeight += opt.Weight
+	}
+
+	// 2. Weighted Random Selection
+	r := rand.Intn(totalWeight)
+	currentWeight := 0
+
+	for _, opt := range validOptions {
+		currentWeight += opt.Weight
+		if r < currentWeight {
+			// Update the session with the Persona ID
+			sess.NarratorPersona = opt.PersonaID
+
+			// If it's the special "Standard Classic Author" case, pick a random name from the global authors list
+			if opt.DisplayName == "Standard Classic Author" {
+				// 'authors' is the package-level variable defined in handler.go
+				return authors[rand.Intn(len(authors))]
+			}
+
+			return opt.DisplayName
+		}
+	}
+
+	// Fallback (should rarely be reached)
+	sess.NarratorPersona = ""
+	return authors[0]
 }
 
 func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
@@ -524,7 +605,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("--- NEW GAME STATE (GENERATE) --- %s", prettyPrint(aiResp.NewGameState))
+	// log.Printf("--- NEW GAME STATE (GENERATE) --- %s", prettyPrint(aiResp.NewGameState))
 
 	if aiResp.StoryUpdate.BackgroundColor == "" {
 		aiResp.StoryUpdate.BackgroundColor = "#1e1e1e"
@@ -647,44 +728,47 @@ func (h *Handler) DownloadStory(w http.ResponseWriter, r *http.Request) {
 	pdf.SetFont("Times", "B", 36)
 	pdf.Cell(0, 80, "")
 	pdf.Ln(-1)
+
+	// Determine the PDF title based on the persona
 	title := "Your Story"
-	if sess.IsFunny {
+	switch sess.NarratorPersona {
+	case "funny":
 		title = "A Decently Amusing Story"
-	} else if sess.IsAngry {
+	case "angry":
 		title = "The Tale I Was Forced to Tell"
-	} else if sess.IsXKCD {
+	case "xkcd":
 		title = "Hypothesis: A Story"
-	} else if sess.IsStanley {
+	case "stanley":
 		title = "The Story of a Man Named Stanley"
-	} else if sess.IsGLaDOS {
+	case "glados":
 		title = "A Mandatory Enrichment Activity"
-	} else if sess.IsKreia {
+	case "kreia":
 		title = "A Lesson in Consequences"
-	} else if sess.IsNietzsche {
+	case "nietzsche":
 		title = "Thus Spoke the Traveler"
-	} else if sess.IsJohnBunyan {
+	case "bunyan":
 		title = "The Pilgrim's Burden"
-	} else if sess.IsSocrates {
+	case "socrates":
 		title = "An Unexamined Life"
-	} else if sess.IsTheHistorian {
+	case "historian":
 		title = "The Human Thing"
-	} else if sess.IsRossRamsay {
+	case "ross_ramsay":
 		title = "The Happy Little Scallop is RAW!"
-	} else if sess.IsSnoopChild {
+	case "snoop_child":
 		title = "Fo' Shizzle, My Soufflé"
-	} else if sess.IsDrSeuss {
+	case "dr_seuss":
 		title = "Oh, the Things You Will Find!"
-	} else if sess.IsTolstoyVsCamus {
+	case "tolstoy_camus":
 		title = "The Kingdom and the Absurd"
-	} else if sess.IsBastion {
+	case "bastion":
 		title = "The Kid's Tale"
-	} else if sess.IsDiogenesVsChesterton {
+	case "diogenes_chesterton":
 		title = "The Lamp and the Cross"
-	} else if sess.IsThompson {
+	case "thompson":
 		title = "Loathing in the Dragon's Lair"
-	} else if sess.IsFishburne {
+	case "fishburne":
 		title = "A Glitch in the Code"
-	} else if sess.IsBlanchett {
+	case "blanchett":
 		title = "A Whisper of Starlight"
 	}
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"story_ai/handlers"
 	"story_ai/metrics"
 	"story_ai/session"
@@ -33,7 +34,7 @@ func main() {
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-2.5-flash")
+	model := client.GenerativeModel("gemini-3.1-flash-lite-preview")
 	temp := float32(0.9)
 	model.GenerationConfig = genai.GenerationConfig{
 		Temperature: &temp,

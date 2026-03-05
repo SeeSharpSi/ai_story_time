@@ -11,365 +11,533 @@ templ Index(title string) {
 			<meta property="og:type" content="website"/>
 			<meta property="og:url" content="https://github.com/SeeSharpSi/story_ai"/>
 			<meta property="og:title" content="Fable Mind - An Interactive Text-Based Adventure"/>
-			<meta property="og:description" content="An interactive, text-based adventure game powered by Google's Gemini API. Craft a unique story, choose your genre, and survive a challenging world."/>
-			<meta property="og:image" content="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a"/>
+			<meta
+				property="og:description"
+				content="An interactive, text-based adventure game powered by Google's Gemini API. Craft a unique story, choose your genre, and survive a challenging world."
+			/>
+			<meta
+				property="og:image"
+				content="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a"
+			/>
 			<!-- Twitter -->
 			<meta property="twitter:card" content="summary_large_image"/>
 			<meta property="twitter:url" content="https://github.com/SeeSharpSi/story_ai"/>
 			<meta property="twitter:title" content="Fable Mind - An Interactive Text-Based Adventure"/>
-			<meta property="twitter:description" content="An interactive, text-based adventure game powered by Google's Gemini API. Craft a unique story, choose your genre, and survive a challenging world."/>
-			<meta property="twitter:image" content="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a"/>
-			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
+			<meta
+				property="twitter:description"
+				content="An interactive, text-based adventure game powered by Google's Gemini API. Craft a unique story, choose your genre, and survive a challenging world."
+			/>
+			<meta
+				property="twitter:image"
+				content="https://github.com/user-attachments/assets/131c1b8d-5373-4e93-87e8-940b57b83e6a"
+			/>
+			<link rel="icon" href="/static/fablemind_logo_cropped.jpg" type="image/jpeg"/>
 			<script src="/static/htmx.min.js"></script>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-			<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+			<link
+				href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+				rel="stylesheet"
+			/>
 			<style>
-								:root {
-					--background-color: #181818; /* Light Grey */
-					--primary-color: #3498db; /* Default Blue */
-					--send-button-color: #3498db; /* Default Blue */
-				}
+        :root {
+            --background-color: #181818;
+            /* Light Grey */
+            --primary-color: #3498db;
+            /* Default Blue */
+            --send-button-color: #3498db;
+            /* Default Blue */
+        }
 
-				.theme-fantasy {
-					--primary-color: #8e44ad; /* Wisteria Purple */
-					--send-button-color: #8e44ad; /* Wisteria Purple */
-				}
+        .theme-fantasy {
+            --primary-color: #8e44ad;
+            /* Wisteria Purple */
+            --send-button-color: #8e44ad;
+            /* Wisteria Purple */
+        }
 
-				.theme-sci-fi {
-					--primary-color: #2980b9; /* Belize Hole Blue */
-					--send-button-color: #2980b9; /* Belize Hole Blue */
-				}
+        .theme-sci-fi {
+            --primary-color: #2980b9;
+            /* Belize Hole Blue */
+            --send-button-color: #2980b9;
+            /* Belize Hole Blue */
+        }
 
-				.theme-historical-fiction {
-					--primary-color: #c0392b; /* Pomegranate Red */
-					--send-button-color: #c0392b; /* Pomegranate Red */
-				}
+        .theme-historical-fiction {
+            --primary-color: #c0392b;
+            /* Pomegranate Red */
+            --send-button-color: #c0392b;
+            /* Pomegranate Red */
+        }
 
-				html, body {
-					overflow-x: hidden;
-				}
+        html,
+        body {
+            overflow-x: hidden;
+        }
 
-				body { 
-					font-family: 'JetBrains Mono', monospace;
-					margin: 0; 
-					padding: 20px 15px; 
-					background-color: var(--background-color);
-					color: #d4d4d4;
-					display: flex; 
-					flex-direction: column;
-					justify-content: center; 
-					align-items: center; 
-					min-height: 100vh; 
-					transition: background-color 0.5s;
-					box-sizing: border-box;
-				}
-				#main-content {
-					display: flex;
-					flex-direction: column;
-					justify-content: center;
-					align-items: center;
-					width: 100%;
-				}
-				#story-container { 
-					max-width: 600px; 
-					width: 98%; 
-					background-color: #252526;
-					padding: 40px; 
-					border-radius: 8px; 
-					box-shadow: 0 4px 8px rgba(0,0,0,0.3); 
-					text-align: center; 
-					border: 1px solid #333333;
-					position: relative;
-					box-sizing: border-box;
-				}
-				h1, h3 {
-					color: #ffffff;
-				}
-				.rules { text-align: left; margin-bottom: 30px; }
-				.genre-buttons {
-					display: flex;
-					justify-content: center;
-					flex-wrap: wrap;
-					gap: 10px;
-					margin-top: 20px;
-				}
-				button { 
-					font-family: 'JetBrains Mono', monospace;
-					padding: 10px 20px; 
-					font-size: 1em; 
-					border: 2px solid;
-					background-color: #333;
-					color: #d4d4d4; 
-					border-radius: 4px; 
-					cursor: pointer; 
-					transition: background-color 0.3s, color 0.3s;
-					font-weight: bold;
-				}
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+            padding: 20px 15px;
+            background-color: var(--background-color);
+            color: #d4d4d4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.5s;
+            box-sizing: border-box;
+        }
 
-				.genre-buttons .fantasy-btn { border-color: #8e44ad; }
-				.genre-buttons .scifi-btn { border-color: #2980b9; }
-				.genre-buttons .historical-fiction-btn { border-color: #c0392b; }
+        #main-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
 
-				.genre-buttons .fantasy-btn:hover { background-color: #8e44ad; color: white; }
-				.genre-buttons .scifi-btn:hover { background-color: #2980b9; color: white; }
-				.genre-buttons .historical-fiction-btn:hover { background-color: #c0392b; color: white; }
+        #story-container {
+            max-width: 600px;
+            width: 98%;
+            background-color: #252526;
+            padding: 30px 40px 40px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            border: 1px solid #333333;
+            position: relative;
+            box-sizing: border-box;
+        }
 
-				/* Make the Send button less prominent */
-				#response-form button {
-					border-color: var(--send-button-color);
-				}
+        h3 {
+            color: #ffffff;
+        }
 
-				#response-form button:hover {
-					background-color: var(--send-button-color);
-					color: white;
-				}
+        h1 {
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
 
-				/* Spinner styles */
-				.loader {
-					border: 8px solid transparent;
-					border-top: 8px solid var(--background-color);
-					border-bottom: 8px solid white;
-					border-radius: 50%;
-					width: 60px;
-					height: 60px;
-					animation: spin 1s linear infinite;
-					pointer-events: auto; /* Re-enable pointer events for the spinner */
-				}
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
 
-				@keyframes spin {
-					0% { transform: rotate(0deg); }
-					100% { transform: rotate(360deg); }
-				}
+        .logo:hover {
+            opacity: 1.0;
+            cursor: pointer;
+        }
 
-                /* --- General Indicator Style (for #spinner) --- */
-                /* This provides a basic, centered position for any indicator. */
-                .htmx-indicator {
-                    display: none;
-                    position: fixed;
-                    z-index: 1000;
-                }
+        .fullscreen-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
 
-                .htmx-request.htmx-indicator,
-                .htmx-indicator.htmx-request {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    flex-direction: column;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                }
+        .fullscreen-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #ffffff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close-modal:hover {
+            color: #cccccc;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .logo {
+                position: relative;
+                top: 0;
+                left: 0;
+                display: block;
+                margin: 0 auto 20px auto;
+                width: 60px;
+                height: 60px;
+            }
+
+            h1 {
+                margin-top: 10px;
+            }
+        }
+
+        .rules {
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .genre-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: 2px solid;
+            background-color: #333;
+            color: #d4d4d4;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            font-weight: bold;
+        }
+
+        .genre-buttons .fantasy-btn {
+            border-color: #8e44ad;
+        }
+
+        .genre-buttons .scifi-btn {
+            border-color: #2980b9;
+        }
+
+        .genre-buttons .historical-fiction-btn {
+            border-color: #c0392b;
+        }
+
+        .genre-buttons .fantasy-btn:hover {
+            background-color: #8e44ad;
+            color: white;
+        }
+
+        .genre-buttons .scifi-btn:hover {
+            background-color: #2980b9;
+            color: white;
+        }
+
+        .genre-buttons .historical-fiction-btn:hover {
+            background-color: #c0392b;
+            color: white;
+        }
+
+        /* Make the Send button less prominent */
+        #response-form button {
+            border-color: var(--send-button-color);
+        }
+
+        #response-form button:hover {
+            background-color: var(--send-button-color);
+            color: white;
+        }
+
+        /* Spinner styles */
+        .loader {
+            border: 8px solid transparent;
+            border-top: 8px solid var(--background-color);
+            border-bottom: 8px solid white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            pointer-events: auto;
+            /* Re-enable pointer events for the spinner */
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- General Indicator Style (for #spinner) --- */
+        /* This provides a basic, centered position for any indicator. */
+        .htmx-indicator {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+        }
+
+        .htmx-request.htmx-indicator,
+        .htmx-indicator.htmx-request {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
 
 
-                /* --- Overlay-Specific Style --- */
-                /* This targets ONLY our .with-overlay class to add the background
+        /* --- Overlay-Specific Style --- */
+        /* This targets ONLY our .with-overlay class to add the background
                    and expand it to fill the screen. */
-                .htmx-request.with-overlay,
-                .with-overlay.htmx-request {
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    transform: none; /* Reset the default centering transform */
-                    background-color: rgba(37, 37, 38, 0.7);
-                }
+        .htmx-request.with-overlay,
+        .with-overlay.htmx-request {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: none;
+            /* Reset the default centering transform */
+            background-color: rgba(37, 37, 38, 0.7);
+        }
 
-				#loading-indicator {
-					pointer-events: none; /* Allow clicks to pass through the container */
-				}
+        #loading-indicator {
+            pointer-events: none;
+            /* Allow clicks to pass through the container */
+        }
 
-				.loading-text {
-					color: #d4d4d4;
-					margin-top: 15px;
-					font-style: italic;
-					background-color: rgba(40, 40, 40, 1); /* Semi-transparent dark grey */
-					padding: 15px;
-					border-radius: 8px;
-					pointer-events: auto; /* Re-enable pointer events for the text */
-                    margin-left: 15px;
-                    margin-right: 15px;
-                    text-align: center;
-				}
+        .loading-text {
+            color: #d4d4d4;
+            margin-top: 15px;
+            font-style: italic;
+            background-color: rgba(40, 40, 40, 1);
+            /* Semi-transparent dark grey */
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: auto;
+            /* Re-enable pointer events for the text */
+            margin-left: 15px;
+            margin-right: 15px;
+            text-align: center;
+        }
 
-				/* Story view styles */
-				#story-history {
-					text-align: left;
-					margin-bottom: 20px;
-					border-bottom: 1px solid #333;
-					padding-bottom: 10px;
-				}
-				.user-response {
-					color: #4ec9b0; /* Teal */
-					font-style: italic;
-				}
-				.item-added {
-					color: #a6e22e; /* Lime Green */
-					font-weight: bold;
-				}
-				.item-removed {
-					color: #f92672; /* Pink/Red */
-					text-decoration: line-through;
-				}
-				#response-form {
-					margin-bottom: 20px;
-				}
-				#prompt {
-					flex-grow: 1;
-					padding: 10px;
-					border: 1px solid #333;
-					border-radius: 4px;
-					background-color: #1e1e1e;
-					color: #d4d4d4;
-					font-family: 'JetBrains Mono', monospace;
-					margin-right: 10px; /* Add space between input and button */
-					box-sizing: border-box; /* Prevents padding from adding to the width */
-				}
-				#inventory {
-					text-align: left;
-					padding: 20px;
-					background-color: #252526;
-					border-radius: 8px;
-					border: 1px solid #333;
-					margin-top: 20px;
-				}
-				#word-count {
-					font-size: 0.8em;
-					color: #888;
-					margin-left: 10px;
-				}
+        /* Story view styles */
+        #story-history {
+            text-align: left;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
 
-				/* Difficulty selector styles */
-				.difficulty-container {
-					margin-top: 20px;
-					display: flex;
-					justify-content: center;
-					align-items: center;
-					gap: 10px;
-				}
-				.difficulty-label {
-					font-size: 1.2em;
-					color: #ffffff;
-				}
-				#difficulty-selector {
-					font-family: 'JetBrains Mono', monospace;
-					padding: 8px 30px 8px 12px; /* Add padding for the arrow */
-					border-radius: 4px;
-					border: 1px solid #555;
-					background-color: #333;
-					color: #d4d4d4;
-					-webkit-appearance: none; /* Remove default arrow on Chrome/Safari */
-					-moz-appearance: none; /* Remove default arrow on Firefox */
-					appearance: none;
-					background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23d4d4d4' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-					background-repeat: no-repeat;
-					background-position: right 10px center;
-					cursor: pointer;
-					transition: border-color 0.3s;
-				}
+        .user-response {
+            color: #4ec9b0;
+            /* Teal */
+            font-style: italic;
+        }
 
-				#difficulty-selector:hover {
-					border-color: #666;
-				}
+        .item-added {
+            color: #a6e22e;
+            /* Lime Green */
+            font-weight: bold;
+        }
 
-				#difficulty-selector:focus {
-					outline: none;
-					border-color: #ffffff;
-				}
+        .item-removed {
+            color: #f92672;
+            /* Pink/Red */
+            text-decoration: line-through;
+        }
 
-				/* Player Status Bar */
-				#player-status {
-					text-align: left;
-					margin-bottom: 20px;
-					padding: 10px;
-					background-color: #1e1e1e;
-					border: 1px solid #333;
-					border-radius: 4px;
-				}
-				.condition {
-					color: #fd971f; /* Orange */
-					font-style: italic;
-				}
+        #response-form {
+            margin-bottom: 20px;
+        }
 
-				.inventory-item {
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-					padding: 8px 0;
-				}
+        #prompt {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'JetBrains Mono', monospace;
+            margin-right: 10px;
+            /* Add space between input and button */
+            box-sizing: border-box;
+            /* Prevents padding from adding to the width */
+        }
 
-				.item-properties {
-					font-style: italic;
-					color: #888; /* Faint color */
-				}
+        #inventory {
+            text-align: left;
+            padding: 20px;
+            background-color: #252526;
+            border-radius: 8px;
+            border: 1px solid #333;
+            margin-top: 20px;
+        }
 
-				.inventory-divider {
-					border: 0;
-					height: 1px;
-					background-color: #444;
-					margin: 0;
-				}
+        #word-count {
+            font-size: 0.8em;
+            color: #888;
+            margin-left: 10px;
+        }
 
-				/* Tooltip Styles */
-				.tooltip {
-					position: relative;
-					display: inline; 
-					cursor: help;
-				}
+        /* Difficulty selector styles */
+        .difficulty-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
 
-				.tooltip .tooltiptext {
-					visibility: hidden;
-					width: 160px;
-					background-color: #555;
-					color: #fff;
-					text-align: center;
-					border-radius: 6px;
-					padding: 5px;
-					position: absolute;
-					z-index: 1;
-					bottom: 125%;
-					left: 50%;
-					margin-left: -80px;
-					opacity: 0;
-					transition: opacity 0.3s;
-				}
+        .difficulty-label {
+            font-size: 1.2em;
+            color: #ffffff;
+        }
 
-                .tooltip .tooltiptext.tooltip-bottom {
-					bottom: auto; 
-					top: 125%; 
-				}
+        #difficulty-selector {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 8px 30px 8px 12px;
+            /* Add padding for the arrow */
+            border-radius: 4px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: #d4d4d4;
+            -webkit-appearance: none;
+            /* Remove default arrow on Chrome/Safari */
+            -moz-appearance: none;
+            /* Remove default arrow on Firefox */
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23d4d4d4' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
 
-				.tooltip:hover .tooltiptext,
-                .tooltip:focus .tooltiptext {
-                    visibility: visible;
-                    opacity: 1;
-                }
+        #difficulty-selector:hover {
+            border-color: #666;
+        }
 
-				.proper-noun {
-					color: #d08770; /* Coral Rose */
-					cursor: help;
-				}
-				.footer {
-					text-align: center;
-					padding-top: 20px;
-					font-size: 0.9em;
-					color: #888;
-				}
-				.footer a {
-					color: #aaa;
-					text-decoration: none;
-				}
-				.footer a:hover {
-					text-decoration: underline;
-				}
-				.footer span {
-					margin: 0 10px;
-				}
-			</style>
+        #difficulty-selector:focus {
+            outline: none;
+            border-color: #ffffff;
+        }
+
+        /* Player Status Bar */
+        #player-status {
+            text-align: left;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        .condition {
+            color: #fd971f;
+            /* Orange */
+            font-style: italic;
+        }
+
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .item-properties {
+            font-style: italic;
+            color: #888;
+            /* Faint color */
+        }
+
+        .inventory-divider {
+            border: 0;
+            height: 1px;
+            background-color: #444;
+            margin: 0;
+        }
+
+        /* Tooltip Styles */
+        .tooltip {
+            position: relative;
+            display: inline;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 160px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -80px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip .tooltiptext.tooltip-bottom {
+            bottom: auto;
+            top: 125%;
+        }
+
+        .tooltip:hover .tooltiptext,
+        .tooltip:focus .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .proper-noun {
+            color: #d08770;
+            /* Coral Rose */
+            cursor: help;
+        }
+
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .footer a {
+            color: #aaa;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer span {
+            margin: 0 10px;
+        }
+    </style>
 		</head>
 		<body>
 			<div id="main-content">
 				<div id="story-container">
+					<img src="/static/fablemind_logo_cropped.jpg" alt="Fable Mind Logo" class="logo" onclick="openFullscreen()"/>
 					<h1>Welcome, Traveler</h1>
 					<div class="rules">
 						<h3>How to Play</h3>
@@ -378,7 +546,7 @@ templ Index(title string) {
 							<li>Your choices shape the narrative</li>
 							<li>Use quotes to speak, e.g. "Hello there"</li>
 							<li>Interact with anything and everything</li>
-                            <li>To preemptively end the story, type "end story"</li>
+							<li>To preemptively end the story, type "end story"</li>
 						</ul>
 						<h3>Tips</h3>
 						<ul>
@@ -396,13 +564,34 @@ templ Index(title string) {
 						</ul>
 					</div>
 					<div class="genre-buttons">
-						<button class="fantasy-btn" hx-get="/start" hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+						<button
+							class="fantasy-btn"
+							hx-get="/start"
+							hx-vars="genre:'fantasy', consequence_model:document.getElementById('difficulty-selector').value"
+							hx-target="#main-content"
+							hx-swap="innerHTML"
+							hx-indicator="#loading-indicator"
+						>
 							Fantasy
 						</button>
-						<button class="scifi-btn" hx-get="/start" hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+						<button
+							class="scifi-btn"
+							hx-get="/start"
+							hx-vars="genre:'sci-fi', consequence_model:document.getElementById('difficulty-selector').value"
+							hx-target="#main-content"
+							hx-swap="innerHTML"
+							hx-indicator="#loading-indicator"
+						>
 							Sci-Fi
 						</button>
-						<button class="historical-fiction-btn" hx-get="/start" hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+						<button
+							class="historical-fiction-btn"
+							hx-get="/start"
+							hx-vars="genre:'historical-fiction', consequence_model:document.getElementById('difficulty-selector').value"
+							hx-target="#main-content"
+							hx-swap="innerHTML"
+							hx-indicator="#loading-indicator"
+						>
 							Historical Fiction
 						</button>
 					</div>
@@ -420,6 +609,13 @@ templ Index(title string) {
 					<span><a href="https://github.com/SeeSharpSi/ai_story_time" target="_blank">GitHub</a></span>
 				</footer>
 			</div>
+			
+			<!-- Fullscreen Modal -->
+			<div id="fullscreen-modal" class="fullscreen-modal" onclick="closeFullscreen()">
+				<span class="close-modal">&times;</span>
+				<img src="/static/fablemind_logo_cropped.jpg" alt="Fable Mind Logo Full Size"/>
+			</div>
+			
 			<div id="loading-indicator" class="htmx-indicator with-overlay">
 				<div class="loader"></div>
 				<p class="loading-text">Starting your story... <br/>This can take up to 20 seconds</p>
@@ -428,74 +624,92 @@ templ Index(title string) {
 				<div class="loader"></div>
 			</div>
 			<script>
-				document.body.addEventListener('htmx:afterSwap', function(evt) {
-					// Scroll the entire window to the bottom to show the new content
-					window.scrollTo(0, document.body.scrollHeight);
-				});
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            // Scroll the entire window to the bottom to show the new content
+            window.scrollTo(0, document.body.scrollHeight);
+        });
 
-				document.body.addEventListener('htmx:beforeRequest', function(evt) {
-					const trigger = evt.detail.elt;
-					// Check if the trigger is one of the genre buttons
-					if (trigger.classList.contains('fantasy-btn') || trigger.classList.contains('scifi-btn') || trigger.classList.contains('historical-fiction-btn')) {
-						const style = getComputedStyle(trigger);
-						const borderColor = style.borderColor;
-						
-						const loadingText = document.querySelector('#loading-indicator .loading-text');
-						if (loadingText) {
-							loadingText.style.border = `2px solid ${borderColor}`;
-						}
+        document.body.addEventListener('htmx:beforeRequest', function (evt) {
+            const trigger = evt.detail.elt;
+            // Check if the trigger is one of the genre buttons
+            if (trigger.classList.contains('fantasy-btn') || trigger.classList.contains('scifi-btn') || trigger.classList.contains('historical-fiction-btn')) {
+                const style = getComputedStyle(trigger);
+                const borderColor = style.borderColor;
 
-						const loader = document.querySelector('#loading-indicator .loader');
-						if (loader) {
-							loader.style.borderTopColor = borderColor;
-						}
+                const loadingText = document.querySelector('#loading-indicator .loading-text');
+                if (loadingText) {
+                    loadingText.style.border = `2px solid ${borderColor}`;
+                }
 
-						const spinner = document.querySelector('#spinner .loader');
-						if (loader) {
-							spinner.style.borderBottomColor = borderColor;
-						}
-					}
-				});
+                const loader = document.querySelector('#loading-indicator .loader');
+                if (loader) {
+                    loader.style.borderTopColor = borderColor;
+                }
 
-                // This function handles the dynamic positioning of tooltips.
-				function positionTooltip(event) {
-					const tooltipContainer = event.target.closest('.tooltip');
-					if (!tooltipContainer) {
-						return;
-					}
+                const spinner = document.querySelector('#spinner .loader');
+                if (loader) {
+                    spinner.style.borderBottomColor = borderColor;
+                }
+            }
+        });
 
-					const tooltipText = tooltipContainer.querySelector('.tooltiptext');
-					if (!tooltipText) {
-						return;
-					}
+        // This function handles the dynamic positioning of tooltips.
+        function positionTooltip(event) {
+            const tooltipContainer = event.target.closest('.tooltip');
+            if (!tooltipContainer) {
+                return;
+            }
 
-					// Make it briefly visible but off-screen to calculate its height
-					tooltipText.style.visibility = 'hidden';
-					tooltipText.style.display = 'block';
-					const tooltipHeight = tooltipText.offsetHeight;
-					tooltipText.style.display = '';
-					tooltipText.style.visibility = '';
+            const tooltipText = tooltipContainer.querySelector('.tooltiptext');
+            if (!tooltipText) {
+                return;
+            }
+
+            // Make it briefly visible but off-screen to calculate its height
+            tooltipText.style.visibility = 'hidden';
+            tooltipText.style.display = 'block';
+            const tooltipHeight = tooltipText.offsetHeight;
+            tooltipText.style.display = '';
+            tooltipText.style.visibility = '';
 
 
-					const containerRect = tooltipContainer.getBoundingClientRect();
+            const containerRect = tooltipContainer.getBoundingClientRect();
 
-					// Check if there's enough space above the element in the viewport
-					// We add a small buffer (e.g., 10px) for safety
-					if (containerRect.top < (tooltipHeight + 10)) {
-						// If not enough space above, show it below
-						tooltipText.classList.add('tooltip-bottom');
-					} else {
-						// Otherwise, show it above (its default position)
-						tooltipText.classList.remove('tooltip-bottom');
-					}
-				}
+            // Check if there's enough space above the element in the viewport
+            // We add a small buffer (e.g., 10px) for safety
+            if (containerRect.top < (tooltipHeight + 10)) {
+                // If not enough space above, show it below
+                tooltipText.classList.add('tooltip-bottom');
+            } else {
+                // Otherwise, show it above (its default position)
+                tooltipText.classList.remove('tooltip-bottom');
+            }
+        }
 
-                // Use event delegation on the body to handle tooltips added by HTMX.
-				// 'mouseenter' is for desktop hover.
-				// 'focusin' is for mobile tap and keyboard navigation (thanks to tabindex="0").
-				document.body.addEventListener('mouseenter', positionTooltip, true);
-				document.body.addEventListener('focusin', positionTooltip, true);
-			</script>
+        // Use event delegation on the body to handle tooltips added by HTMX.
+        // 'mouseenter' is for desktop hover.
+        // 'focusin' is for mobile tap and keyboard navigation (thanks to tabindex="0").
+        document.body.addEventListener('mouseenter', positionTooltip, true);
+        document.body.addEventListener('focusin', positionTooltip, true);
+
+        // Fullscreen modal functions
+        function openFullscreen() {
+            document.getElementById('fullscreen-modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeFullscreen() {
+            document.getElementById('fullscreen-modal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Re-enable scrolling
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeFullscreen();
+            }
+        });
+    </script>
 		</body>
 	</html>
 }

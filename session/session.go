@@ -11,36 +11,18 @@ import (
 
 // Session holds the state for a single user's story.
 type Session struct {
-	ID                     string
-	GameState              *story.GameState
-	StoryHistory           []story.StoryPage
-	CurrentGenre           string
-	CurrentAuthor          string
-	LastAccessed           time.Time
-	IsFunny                bool
-	IsAngry                bool
-	IsXKCD                 bool
-	IsStanley              bool
-	IsGLaDOS               bool
-	IsKreia                bool
-	IsNietzsche            bool
-	IsJohnBunyan           bool
-	IsSocrates             bool
-	IsTheHistorian         bool
-	IsRossRamsay           bool
-	IsSnoopChild           bool
-	IsDrSeuss              bool
-	IsTolstoyVsCamus       bool
-	IsBastion              bool
-	IsDiogenesVsChesterton bool
-	IsThompson             bool
-	IsFishburne            bool
-	IsBlanchett            bool
-	HistoricalEvent        string
-	HistoricalDesc         string
-	HistoricalURL          string
-	HistoricalSummary      string
-	CSRFToken              string
+	ID                string
+	GameState         *story.GameState
+	StoryHistory      []story.StoryPage
+	CurrentGenre      string
+	CurrentAuthor     string
+	NarratorPersona   string
+	LastAccessed      time.Time
+	HistoricalEvent   string
+	HistoricalDesc    string
+	HistoricalURL     string
+	HistoricalSummary string
+	CSRFToken         string
 }
 
 // Manager handles the creation, storage, and retrieval of sessions.

@@ -103,8 +103,9 @@ func (f *FallbackStoryGenerator) GenerateFallbackStory(genre, author string) (AI
 				"Trigger the chamber's traps",
 				"Offend the guardian spirit",
 			},
-			GameWon:  false,
-			GameLost: false,
+			GameWon:           false,
+			GameLost:          false,
+			SolvedPuzzleTypes: []string{},
 		},
 		StoryUpdate: StoryUpdate{
 			Story:           storyText,

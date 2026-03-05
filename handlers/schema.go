@@ -10,31 +10,31 @@ func BuildAIResponseSchema() *genai.Schema {
 			"new_game_state": {
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
-					"player_status": {
+					"status": {
 						Type: genai.TypeObject,
 						Properties: map[string]*genai.Schema{
-							"health":     {Type: genai.TypeInteger},
-							"stamina":    {Type: genai.TypeInteger},
-							"conditions": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+							"hp":    {Type: genai.TypeInteger},
+							"sp":    {Type: genai.TypeInteger},
+							"conds": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
 						},
 					},
-					"inventory": {
+					"inv": {
 						Type: genai.TypeArray,
 						Items: &genai.Schema{
 							Type: genai.TypeObject,
 							Properties: map[string]*genai.Schema{
-								"name":        {Type: genai.TypeString},
-								"description": {Type: genai.TypeString},
-								"properties":  {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
-								"state":       {Type: genai.TypeString},
+								"name":  {Type: genai.TypeString},
+								"desc":  {Type: genai.TypeString},
+								"props": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+								"state": {Type: genai.TypeString},
 							},
 						},
 					},
-					"environment": {
+					"env": {
 						Type: genai.TypeObject,
 						Properties: map[string]*genai.Schema{
-							"location_name": {Type: genai.TypeString},
-							"description":   {Type: genai.TypeString},
+							"loc":  {Type: genai.TypeString},
+							"desc": {Type: genai.TypeString},
 							"exits": {
 								Type: genai.TypeObject,
 								Properties: map[string]*genai.Schema{
@@ -52,14 +52,14 @@ func BuildAIResponseSchema() *genai.Schema {
 									"southwest": {Type: genai.TypeString},
 								},
 							},
-							"world_objects": {
+							"objs": {
 								Type: genai.TypeArray,
 								Items: &genai.Schema{
 									Type: genai.TypeObject,
 									Properties: map[string]*genai.Schema{
-										"name":       {Type: genai.TypeString},
-										"properties": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
-										"state":      {Type: genai.TypeString},
+										"name":  {Type: genai.TypeString},
+										"props": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+										"state": {Type: genai.TypeString},
 									},
 								},
 							},
@@ -68,7 +68,7 @@ func BuildAIResponseSchema() *genai.Schema {
 					"world": {
 						Type: genai.TypeObject,
 						Properties: map[string]*genai.Schema{
-							"world_tension": {Type: genai.TypeInteger},
+							"tension": {Type: genai.TypeInteger},
 						},
 					},
 					"npcs": {
@@ -76,49 +76,49 @@ func BuildAIResponseSchema() *genai.Schema {
 						Items: &genai.Schema{
 							Type: genai.TypeObject,
 							Properties: map[string]*genai.Schema{
-								"name":        {Type: genai.TypeString},
-								"disposition": {Type: genai.TypeString},
-								"knowledge":   {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
-								"goal":        {Type: genai.TypeString},
+								"name": {Type: genai.TypeString},
+								"disp": {Type: genai.TypeString},
+								"know": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+								"goal": {Type: genai.TypeString},
 							},
 						},
 					},
-					"active_puzzles_and_obstacles": {
+					"puzzles": {
 						Type: genai.TypeArray,
 						Items: &genai.Schema{
 							Type: genai.TypeObject,
 							Properties: map[string]*genai.Schema{
-								"name":           {Type: genai.TypeString},
-								"type":           {Type: genai.TypeString},
-								"description":    {Type: genai.TypeString},
-								"status":         {Type: genai.TypeString},
-								"solution_hints": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+								"name":   {Type: genai.TypeString},
+								"type":   {Type: genai.TypeString},
+								"desc":   {Type: genai.TypeString},
+								"status": {Type: genai.TypeString},
+								"hints":  {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
 							},
 						},
 					},
-					"proper_nouns": {
+					"nouns": {
 						Type: genai.TypeArray,
 						Items: &genai.Schema{
 							Type: genai.TypeObject,
 							Properties: map[string]*genai.Schema{
-								"noun":        {Type: genai.TypeString},
-								"phrase_used": {Type: genai.TypeString},
-								"description": {Type: genai.TypeString},
+								"noun":   {Type: genai.TypeString},
+								"phrase": {Type: genai.TypeString},
+								"desc":   {Type: genai.TypeString},
 							},
 						},
 					},
 					"rules": {
 						Type: genai.TypeObject,
 						Properties: map[string]*genai.Schema{
-							"consequence_model": {Type: genai.TypeString},
+							"model": {Type: genai.TypeString},
 						},
 					},
-					"climax":              {Type: genai.TypeBoolean},
-					"win_conditions":      {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
-					"loss_conditions":     {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
-					"game_won":            {Type: genai.TypeBoolean},
-					"game_lost":           {Type: genai.TypeBoolean},
-					"solved_puzzle_types": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+					"climax":         {Type: genai.TypeBoolean},
+					"win":            {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+					"loss":           {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
+					"won":            {Type: genai.TypeBoolean},
+					"lost":           {Type: genai.TypeBoolean},
+					"solved_puzzles": {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeString}},
 				},
 			},
 			"story_update": {

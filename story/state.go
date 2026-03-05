@@ -3,63 +3,63 @@ package story
 // ProperNoun represents a noun and its description for tooltip generation.
 type ProperNoun struct {
 	Noun        string `json:"noun"`
-	PhraseUsed  string `json:"phrase_used"`
-	Description string `json:"description"`
+	PhraseUsed  string `json:"phrase"`
+	Description string `json:"desc"`
 }
 
 // GameState represents the entire state of the game world.
 type GameState struct {
-	PlayerStatus      PlayerStatus `json:"player_status"`
-	Inventory         []Item       `json:"inventory"`
-	Environment       Environment  `json:"environment"`
+	PlayerStatus      PlayerStatus `json:"status"`
+	Inventory         []Item       `json:"inv,omitempty"`
+	Environment       Environment  `json:"env"`
 	World             World        `json:"world"`
-	NPCs              []NPC        `json:"npcs"`
-	Puzzles           []Puzzle     `json:"active_puzzles_and_obstacles"`
-	ProperNouns       []ProperNoun `json:"proper_nouns"`
+	NPCs              []NPC        `json:"npcs,omitempty"`
+	Puzzles           []Puzzle     `json:"puzzles,omitempty"`
+	ProperNouns       []ProperNoun `json:"nouns,omitempty"`
 	Rules             Rules        `json:"rules"`
 	Climax            bool         `json:"climax"`
-	WinConditions     []string     `json:"win_conditions,omitempty"`
-	LossConditions    []string     `json:"loss_conditions,omitempty"`
-	GameWon           bool         `json:"game_won"`
-	GameLost          bool         `json:"game_lost"`
-	SolvedPuzzleTypes []string     `json:"solved_puzzle_types"`
+	WinConditions     []string     `json:"win,omitempty"`
+	LossConditions    []string     `json:"loss,omitempty"`
+	GameWon           bool         `json:"won"`
+	GameLost          bool         `json:"lost"`
+	SolvedPuzzleTypes []string     `json:"solved_puzzles,omitempty"`
 }
 
 // PlayerStatus tracks the player's condition.
 type PlayerStatus struct {
-	Health     int      `json:"health"`
-	Stamina    int      `json:"stamina"`
-	Conditions []string `json:"conditions"`
+	Health     int      `json:"hp"`
+	Stamina    int      `json:"sp"`
+	Conditions []string `json:"conds,omitempty"`
 }
 
 // Item represents an object in the player's inventory.
 type Item struct {
 	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Properties  []string `json:"properties"`
-	State       string   `json:"state"`
+	Description string   `json:"desc"`
+	Properties  []string `json:"props,omitempty"`
+	State       string   `json:"state,omitempty"`
 }
 
 // Environment describes the current location and its interactive elements.
 type Environment struct {
-	LocationName string            `json:"location_name"`
-	Description  string            `json:"description"`
-	Exits        map[string]string `json:"exits"`
-	WorldObjects []WorldObject     `json:"world_objects"`
+	LocationName string            `json:"loc"`
+	Description  string            `json:"desc"`
+	Exits        map[string]string `json:"exits,omitempty"`
+	WorldObjects []WorldObject     `json:"objs,omitempty"`
 }
 
 // WorldObject represents an interactable object in the environment.
 type WorldObject struct {
 	Name       string   `json:"name"`
-	Properties []string `json:"properties"`
-	State      string   `json:"state"`
+	Properties []string `json:"props,omitempty"`
+	State      string   `json:"state,omitempty"`
 }
 
 // NPC represents a non-player character.
 type NPC struct {
 	Name        string   `json:"name"`
-	Disposition string   `json:"disposition"`
-	Knowledge   []string `json:"knowledge"`
+	Disposition string   `json:"disp"`
+	Knowledge   []string `json:"know,omitempty"`
 	Goal        string   `json:"goal"`
 }
 
@@ -67,17 +67,17 @@ type NPC struct {
 type Puzzle struct {
 	Name          string   `json:"name"`
 	Type          string   `json:"type"`
-	Description   string   `json:"description"`
+	Description   string   `json:"desc"`
 	Status        string   `json:"status"`
-	SolutionHints []string `json:"solution_hints"`
+	SolutionHints []string `json:"hints,omitempty"`
 }
 
 // World represents the global state of the world.
 type World struct {
-	WorldTension int `json:"world_tension"`
+	WorldTension int `json:"tension"`
 }
 
 // Rules defines the current rule set for the game.
 type Rules struct {
-	ConsequenceModel string `json:"consequence_model"`
+	ConsequenceModel string `json:"model"`
 }
